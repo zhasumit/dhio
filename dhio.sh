@@ -3,7 +3,8 @@
 # Terminal Notes App with Markdown Preview
 # A bash-based note-taking application with live markdown rendering
 
-NOTES_DIR="$HOME/.terminal_notes"
+NOTES_DIR="$HOME/Documents/.dhio"
+NOTEBIN_DIR="$NOTES_DIR/notebin"
 TEMP_FILE="$NOTES_DIR/.temp_note"
 CODE_TEMP="$NOTES_DIR/.temp_code"
 
@@ -30,6 +31,7 @@ CURRENT_NOTE=""
 # Initialize notes directory
 init_notes_dir() {
     mkdir -p "$NOTES_DIR"
+    mkdir -p "$NOTEBIN_DIR"
 }
 
 # Send notification
@@ -51,7 +53,7 @@ draw_footer() {
 
     case "$context" in
         main)
-            local items=("${PURPLE}[N]${RESET} New" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[/]${RESET} Search" "${PURPLE}[ESC]${RESET} Exit")
+            local items=("${PURPLE}[N]${RESET} New" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[/]${RESET} Search" "${PURPLE}[ESC]${RESET} Exit")
             ;;
         preview)
             local items=("${PURPLE}[E]${RESET} Edit" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[C1-9]${RESET} Copy code" "${PURPLE}[ESC]${RESET} Back")
@@ -61,6 +63,9 @@ draw_footer() {
             ;;
         delete)
             local items=("${PURPLE}[Y]${RESET} Yes" "${PURPLE}[N]${RESET} No" "${PURPLE}[ESC]${RESET} Cancel")
+            ;;
+        notebin)
+            local items=("${PURPLE}[SPACE]${RESET} Select" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[X]${RESET} Purge All" "${PURPLE}[ESC]${RESET} Back")
             ;;
     esac
 
@@ -421,16 +426,26 @@ format_note_line() {
     local num="$1"
     local heading="$2"
     local date="$3"
+    local selected="$4"
     local term_width=$(tput cols)
 
     # Calculate available width for heading (leaving space for number, date, and padding)
     local num_part="${YELLOW}[$num]${RESET} ${BOLD}"
     local date_part="${RESET}${DIM}$date${RESET}"
 
+    # Selection indicator
+    local select_indicator=""
+    if [ "$selected" = "true" ]; then
+        select_indicator="${GREEN}[✓]${RESET} "
+    else
+        select_indicator="${GRAY}[ ]${RESET} "
+    fi
+
     # Strip color codes for length calculation
     local num_len=$((${#num} + 3))  # [X]
     local date_len=${#date}
-    local available_width=$((term_width - num_len - date_len - 2))
+    local select_len=4  # [ ] or [✓]
+    local available_width=$((term_width - num_len - date_len - select_len - 3))
 
     # Truncate heading if too long
     local display_heading="$heading"
@@ -439,10 +454,10 @@ format_note_line() {
     fi
 
     # Calculate padding
-    local padding_len=$((term_width - num_len - ${#display_heading} - date_len - 2))
+    local padding_len=$((term_width - num_len - select_len - ${#display_heading} - date_len - 3))
     local padding=$(printf '%*s' "$padding_len" '')
 
-    echo -e "${YELLOW}[$num]${RESET} ${BOLD}${display_heading}${RESET}${padding}${DIM}$date${RESET}"
+    echo -e "${select_indicator}${YELLOW}[$num]${RESET} ${BOLD}${display_heading}${RESET}${padding}${DIM}$date${RESET}"
 }
 
 # Center text in terminal
@@ -474,6 +489,10 @@ list_notes() {
                     create_note
                     return
                     ;;
+                r|R)
+                    notebin_menu
+                    return
+                    ;;
                 /)
                     search_notes_fuzzy
                     return
@@ -494,7 +513,7 @@ list_notes() {
             local heading=$(head -n 1 "$note" | sed 's/^#* *//')
             local date=$(date -r "$note" "+%Y-%m-%d %H:%M")
 
-            format_note_line "$count" "$heading" "$date"
+            format_note_line "$count" "$heading" "$date" "false"
             ((count++))
         fi
     done
@@ -513,6 +532,10 @@ list_notes() {
                 delete_note_interactive "${note_array[@]}"
                 return
                 ;;
+            r|R)
+                notebin_menu
+                return
+                ;;
             /)
                 search_notes_fuzzy "${note_array[@]}"
                 return
@@ -527,6 +550,195 @@ list_notes() {
                     preview_note "${note_array[$index]}"
                     return
                 fi
+                ;;
+        esac
+    done
+}
+
+# Notebin menu - show deleted notes with restore capability
+notebin_menu() {
+    local deleted_notes=("$NOTEBIN_DIR"/*.md)
+
+    if [ ! -e "${deleted_notes[0]}" ]; then
+        clear
+        echo ""
+        center_text "🗑️ Note Bin"
+        echo ""
+        echo -e "${DIM}No deleted notes found.${RESET}\n"
+        echo -e "${GRAY}Press any key to go back...${RESET}"
+        read -rsn1
+        return
+    fi
+
+    declare -A selected_notes
+    local current_index=0
+
+    while true; do
+        clear
+        echo ""
+        center_text "🗑️ Note Bin"
+        echo ""
+
+        # Rebuild note array on each iteration to handle deletions
+        deleted_notes=("$NOTEBIN_DIR"/*.md)
+
+        # Check if notebin is now empty
+        if [ ! -e "${deleted_notes[0]}" ]; then
+            echo -e "${DIM}No deleted notes found.${RESET}\n"
+            echo -e "${GRAY}Press any key to go back...${RESET}"
+            read -rsn1
+            return
+        fi
+
+        local count=0
+        declare -a note_array
+        for note in "${deleted_notes[@]}"; do
+            if [ -f "$note" ]; then
+                note_array+=("$note")
+                local heading=$(head -n 1 "$note" | sed 's/^#* *//')
+                local date=$(date -r "$note" "+%Y-%m-%d %H:%M")
+
+                local is_selected="false"
+                [ "${selected_notes[$note]}" = "true" ] && is_selected="true"
+
+                if [ $count -eq $current_index ]; then
+                    echo -e "${BLUE}→${RESET} $(format_note_line $((count+1)) "$heading" "$date" "$is_selected")"
+                else
+                    echo -e "  $(format_note_line $((count+1)) "$heading" "$date" "$is_selected")"
+                fi
+                ((count++))
+            fi
+        done
+
+        # Adjust current_index if it's out of bounds
+        if [ $current_index -ge ${#note_array[@]} ] && [ ${#note_array[@]} -gt 0 ]; then
+            current_index=$((${#note_array[@]} - 1))
+        fi
+
+        # Count selected notes
+        local selected_count=0
+        for note in "${!selected_notes[@]}"; do
+            [ "${selected_notes[$note]}" = "true" ] && ((selected_count++))
+        done
+
+        if [ $selected_count -gt 0 ]; then
+            echo -e "\n${CYAN}Selected: ${selected_count} note(s)${RESET}"
+        fi
+
+        draw_footer "notebin"
+
+        key=$(get_key)
+        case "$key" in
+            up)
+                ((current_index--))
+                [ $current_index -lt 0 ] && current_index=$((${#note_array[@]} - 1))
+                ;;
+            down)
+                ((current_index++))
+                [ $current_index -ge ${#note_array[@]} ] && current_index=0
+                ;;
+            " ")
+                # Toggle selection
+                local current_note="${note_array[$current_index]}"
+                if [ "${selected_notes[$current_note]}" = "true" ]; then
+                    selected_notes[$current_note]="false"
+                else
+                    selected_notes[$current_note]="true"
+                fi
+                ;;
+            r|R)
+                # Restore selected notes
+                local restore_count=0
+                for note in "${!selected_notes[@]}"; do
+                    if [ "${selected_notes[$note]}" = "true" ] && [ -f "$note" ]; then
+                        local basename=$(basename "$note")
+                        mv "$note" "$NOTES_DIR/$basename"
+                        ((restore_count++))
+                        unset selected_notes[$note]
+                    fi
+                done
+
+                if [ $restore_count -gt 0 ]; then
+                    send_notification "Notes App" "$restore_count note(s) restored"
+                    sleep 1
+                else
+                    send_notification "Notes App" "No notes selected to restore"
+                    sleep 1
+                fi
+                ;;
+            d|D)
+                # Permanently delete selected notes
+                local delete_count=0
+                for note in "${!selected_notes[@]}"; do
+                    if [ "${selected_notes[$note]}" = "true" ]; then
+                        ((delete_count++))
+                    fi
+                done
+
+                if [ $delete_count -gt 0 ]; then
+                    clear
+                    echo -e "${RED}${BOLD}═══════════════════════════════════════${RESET}"
+                    echo -e "${RED}${BOLD}     PERMANENT DELETION${RESET}"
+                    echo -e "${RED}${BOLD}═══════════════════════════════════════${RESET}\n"
+                    echo -e "${RED}${BOLD}WARNING: This will permanently delete $delete_count note(s)!${RESET}"
+                    echo -e "${RED}This action CANNOT be undone!${RESET}\n"
+                    echo -e "${YELLOW}[Y]${RESET} Yes, delete permanently"
+                    echo -e "${YELLOW}[N]${RESET} No, cancel\n"
+
+                    while true; do
+                        del_key=$(get_key)
+                        case "$del_key" in
+                            y|Y)
+                                local deleted=0
+                                for note in "${!selected_notes[@]}"; do
+                                    if [ "${selected_notes[$note]}" = "true" ] && [ -f "$note" ]; then
+                                        rm -f "$note"
+                                        ((deleted++))
+                                        unset selected_notes[$note]
+                                    fi
+                                done
+                                send_notification "Notes App" "$deleted note(s) permanently deleted"
+                                sleep 1
+                                break
+                                ;;
+                            n|N|esc)
+                                break
+                                ;;
+                        esac
+                    done
+                else
+                    send_notification "Notes App" "No notes selected to delete"
+                    sleep 1
+                fi
+                ;;
+            x|X)
+                # Purge all notes in notebin
+                clear
+                echo -e "${RED}${BOLD}═══════════════════════════════════════${RESET}"
+                echo -e "${RED}${BOLD}     PURGE ALL NOTES${RESET}"
+                echo -e "${RED}${BOLD}═══════════════════════════════════════${RESET}\n"
+                echo -e "${RED}${BOLD}WARNING: Permanently delete ALL notes in the bin?${RESET}"
+                echo -e "${RED}This action CANNOT be undone!${RESET}\n"
+                echo -e "${YELLOW}[Y]${RESET} Yes, purge all"
+                echo -e "${YELLOW}[N]${RESET} No, cancel\n"
+
+                while true; do
+                    purge_key=$(get_key)
+                    case "$purge_key" in
+                        y|Y)
+                            rm -f "$NOTEBIN_DIR"/*.md
+                            send_notification "Notes App" "All notes permanently deleted from bin"
+                            sleep 1
+                            return
+                            ;;
+                        n|N|esc)
+                            break
+                            ;;
+                    esac
+                done
+                ;;
+            esc)
+                return
                 ;;
         esac
     done
@@ -550,11 +762,13 @@ search_notes_fuzzy() {
         # Build filtered list
         local filtered_notes=()
         for n in "${notes[@]}"; do
-            if [ -z "$search_term" ]; then
-                filtered_notes+=("$n")
-            else
-                if grep -iq -- "$search_term" "$n" 2>/dev/null; then
+            if [ -f "$n" ]; then
+                if [ -z "$search_term" ]; then
                     filtered_notes+=("$n")
+	            else
+                    if grep -iq -- "$search_term" "$n" 2>/dev/null; then
+                        filtered_notes+=("$n")
+                    fi
                 fi
             fi
         done
@@ -646,7 +860,7 @@ delete_note_interactive() {
     local notes=("$@")
     clear
     echo -e "${BOLD}${RED}═══════════════════════════════════════${RESET}"
-    echo -e "${BOLD}${RED}     DELETE NOTE${RESET}"
+    echo -e "${BOLD}${RED}     Move to Bin${RESET}"
     echo -e "${BOLD}${RED}═══════════════════════════════════════${RESET}\n"
 
     echo -e "${YELLOW}Enter note number to delete:${RESET}\n"
@@ -665,7 +879,7 @@ delete_note_interactive() {
         key=$(get_key)
         case "$key" in
             esc)
-                send_notification "Notes App" "Deletion cancelled"
+                send_notification "Notes App" "Action cancelled"
                 return
                 ;;
             [0-9])
@@ -745,14 +959,15 @@ edit_note() {
 
     ${EDITOR:-nano} "$filepath"
 
-    local heading=$(head -n 1 "$filepath" | sed 's/^#* *//')
+    local heading
+    heading=$(head -n 1 "$filepath" | sed 's/^#* *//')
     send_notification "Notes App" "Note updated: $heading"
 
     # Auto-preview after edit
     preview_note "$filepath"
 }
 
-# Delete note
+# Delete note (move to notebin)
 delete_note() {
     local filepath=$1
 
@@ -762,13 +977,15 @@ delete_note() {
         return
     fi
 
-    local heading=$(head -n 1 "$filepath" | sed 's/^#* *//')
+    local heading
+    heading=$(head -n 1 "$filepath" | sed 's/^#* *//')
+
     clear
-    echo -e "${RED}${BOLD}═══════════════════════════════════════${RESET}"
-    echo -e "${RED}${BOLD}     CONFIRM DELETION${RESET}"
-    echo -e "${RED}${BOLD}═══════════════════════════════════════${RESET}\n"
-    echo -e "${YELLOW}Delete: ${BOLD}$heading${RESET}"
-    echo -e "\n${RED}Are you sure? This cannot be undone!${RESET}\n"
+    echo -e "${YELLOW}${BOLD}═══════════════════════════════════════${RESET}"
+    echo -e "${YELLOW}${BOLD}     MOVE TO BIN${RESET}"
+    echo -e "${YELLOW}${BOLD}═══════════════════════════════════════${RESET}\n"
+    echo -e "${CYAN}Move to bin: ${BOLD}$heading${RESET}"
+    echo -e "\n${DIM}Note will be moved to notebin (can be restored later)${RESET}\n"
 
     draw_footer "delete"
 
@@ -776,13 +993,15 @@ delete_note() {
         key=$(get_key)
         case "$key" in
             y|Y)
-                rm "$filepath"
-                send_notification "Notes App" "Note deleted: $heading"
+                local basename
+                basename=$(basename "$filepath")
+                mv "$filepath" "$NOTEBIN_DIR/$basename"
+                send_notification "Notes App" "Note moved to bin: $heading"
                 sleep 1
                 return
                 ;;
             n|N|esc)
-                send_notification "Notes App" "Deletion cancelled"
+                send_notification "Notes App" "Action cancelled"
                 sleep 1
                 return
                 ;;

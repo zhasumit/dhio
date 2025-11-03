@@ -1,53 +1,79 @@
+A. Restore deleted notes 
+  - deleted notes go to notebin folder 
+  - a list of notes will show 
+  - space to select the note 
+  - once a set of notes are selected, they can be restored
+
+
+
+B. Archive System
+
+  - Archive old notes to keep main list clean
+  - Browse archived notes separately
+  - Restore archived notes back to main
+  - Permanently delete archived notes (also from notebin)
+
+
+
+C. Sorting Options
+
+  - Sort by date (newest first)
+  - Sort by name (alphabetical)
+  - Sort by size (largest first)
+  - Cycle through with S key
+
+
+
+
+---------------------------------------------------------------------------------------
+
+
+
 1. Note Templates
 
 Blank note
-Meeting notes (with agenda, attendees, action items)
-To-Do lists (with priorities)
-Code snippets (with language support)
-Daily journal (with gratitude, reflection)
+  - Meeting notes (with agenda, attendees, action items)
+  - To-Do lists (with priorities)
+  - Code snippets (with language support)
+  - Daily journal (with gratitude, reflection)
+  - add more and more templates and also user can make the templates
 
-3. Archive System
 
-Archive old notes to keep main list clean
-Browse archived notes separately
-Restore archived notes back to main
-Permanently delete archived notes
-
-4. Sorting Options
-
-Sort by date (newest first)
-Sort by name (alphabetical)
-Sort by size (largest first)
-Cycle through with S key
 
 5. Export Functionality
 
-Export to HTML (requires pandoc or markdown)
-Export to PDF (requires pandoc + pdflatex)
-Export to plain text
-Files saved to Desktop
+  - Export to HTML (requires pandoc or markdown)
+  - Export to PDF (requires pandoc + pdflatex)
+  - Export to plain text
+  - Files saved to documents/dhiodocs in home folder 
+
+
 
 6. Enhanced UI
 
-Beautiful gradient header with background colors
-Stats display (note count, archived count, active filters)
-Better note metadata (date, size, first tag)
-Improved code block display with copy hints
-Full-width decorative lines
+  - Beautiful gradient header with background colors
+  - Stats display (note count, archived count, active filters)
+  - Better note metadata (date, size, first tag)
+  - Improved code block display with copy hints
+  - Full-width decorative lines
+
+
 
 7. Help System
 
-Comprehensive help screen (H key)
-Keyboard shortcuts guide
-Markdown syntax reference
-Template descriptions
-Tips and tricks
+  - Comprehensive help screen (H key)
+  - Keyboard shortcuts guide
+  - Markdown syntax reference
+  - Template descriptions
+  - Tips and tricks
+
+
 
 8. Better Code Handling
 
-Code blocks show which number to press for copying
-Better visual distinction for code blocks
-Multi-language syntax highlighting labels
+  - Code blocks show which number to press for copying
+  - Better visual distinction for code blocks
+  - Multi-language syntax highlighting labels
 
 
 
