@@ -130,23 +130,51 @@ copy_code_block() {
     fi
 }
 
-# Process inline markdown formatting
+# Process inline markdown formatting with tag support
 process_inline() {
     local line="$1"
     local result=""
     local i=0
-    local len=${#line}
 
-    # Handle <br> tags
+    # Handle <br> tags first
     line="${line//<br>/$'\n'}"
     line="${line//<br\/>/$'\n'}"
     line="${line//<BR>/$'\n'}"
     line="${line//<BR\/>/$'\n'}"
 
+    local len=${#line}
+
     while [ $i -lt $len ]; do
         local char="${line:$i:1}"
         local next="${line:$i+1:1}"
         local next2="${line:$i+2:1}"
+
+        # Check for @tags (e.g., @tagname)
+        if [ "$char" = "@" ]; then
+            local end_pos=$((i+1))
+            local found_end=false
+            # Match alphanumeric, hyphens, and underscores
+            while [ $end_pos -lt $len ]; do
+                local test_char="${line:$end_pos:1}"
+                if [[ "$test_char" =~ [a-zA-Z0-9_-] ]]; then
+                    ((end_pos++))
+                else
+                    found_end=true
+                    break
+                fi
+            done
+
+            if [ $end_pos -gt $((i+1)) ]; then
+                local tag_content="${line:$i:$((end_pos-i))}"
+                result="${result}${YELLOW}${tag_content}${RESET}"
+                i=$end_pos
+                continue
+            else
+                result="${result}${char}"
+                ((i++))
+                continue
+            fi
+        fi
 
         # Check for ***text*** (bold italic)
         if [ "$char" = "*" ] && [ "$next" = "*" ] && [ "$next2" = "*" ]; then
@@ -271,30 +299,43 @@ render_markdown() {
         if [[ "$line" =~ ^\[([[:space:]xX]?)\][[:space:]](.+)$ ]]; then
             local checkbox="${BASH_REMATCH[1]}"
             local todo_text="${BASH_REMATCH[2]}"
+            local formatted_todo=$(process_inline "$todo_text")
 
             if [[ "$checkbox" =~ [xX] ]]; then
                 # Completed todo - double checkmark and strikethrough
-                echo -e "  ${GREEN}✓✓${RESET} ${STRIKETHROUGH}${DIM}$todo_text${RESET}"
+                echo -e "  ${GREEN}✓✓${RESET} ${STRIKETHROUGH}${DIM}$formatted_todo${RESET}"
             else
                 # Uncompleted todo - bigger box
-                echo -e "  ${GRAY}☐${RESET}  $todo_text"
+                echo -e "  ${GRAY}☐${RESET}  $formatted_todo"
             fi
             continue
         fi
 
         # Headers - simple style
         if [[ "$line" =~ ^######[[:space:]](.+)$ ]]; then
-            echo -e "${MAGENTA}${BASH_REMATCH[1]}${RESET}"
+            local content="${BASH_REMATCH[1]}"
+            local formatted=$(process_inline "$content")
+            echo -e "${MAGENTA}${formatted}${RESET}"
         elif [[ "$line" =~ ^#####[[:space:]](.+)$ ]]; then
-            echo -e "${MAGENTA}${BOLD}• ${BASH_REMATCH[1]}${RESET}"
+            local content="${BASH_REMATCH[1]}"
+            local formatted=$(process_inline "$content")
+            echo -e "${MAGENTA}${BOLD}• ${formatted}${RESET}"
         elif [[ "$line" =~ ^####[[:space:]](.+)$ ]]; then
-            echo -e "${BLUE}▸ ${BASH_REMATCH[1]}${RESET}"
+            local content="${BASH_REMATCH[1]}"
+            local formatted=$(process_inline "$content")
+            echo -e "${BLUE}▸ ${formatted}${RESET}"
         elif [[ "$line" =~ ^###[[:space:]](.+)$ ]]; then
-            echo -e "${BLUE}${BOLD}═══ ${BASH_REMATCH[1]} ═══${RESET}"
+            local content="${BASH_REMATCH[1]}"
+            local formatted=$(process_inline "$content")
+            echo -e "${BLUE}${BOLD}═══ ${formatted} ═══${RESET}"
         elif [[ "$line" =~ ^##[[:space:]](.+)$ ]]; then
-            echo -e "${CYAN}${BOLD}▋▋ ${BASH_REMATCH[1]} ▋▋${RESET}"
+            local content="${BASH_REMATCH[1]}"
+            local formatted=$(process_inline "$content")
+            echo -e "${CYAN}${BOLD}▋▋ ${formatted} ▋▋${RESET}"
         elif [[ "$line" =~ ^#[[:space:]](.+)$ ]]; then
-            echo -e "${WHITE}${BOLD}█ ${BASH_REMATCH[1]} █${RESET}"
+            local content="${BASH_REMATCH[1]}"
+            local formatted=$(process_inline "$content")
+            echo -e "${WHITE}${BOLD}█ ${formatted} █${RESET}"
         # Horizontal rule
         elif [[ "$line" =~ ^(---|\*\*\*|___)$ ]]; then
             echo -e "${DIM}────────────────────────────────────────────────────${RESET}"
@@ -357,6 +398,8 @@ create_note() {
     echo "# $heading" > "$TEMP_FILE"
     echo "" >> "$TEMP_FILE"
     echo "Write your note here..." >> "$TEMP_FILE"
+    echo "" >> "$TEMP_FILE"
+    echo "Use @tags to organize your notes (e.g., @urgent @work @personal)" >> "$TEMP_FILE"
 
     # Open in default editor
     ${EDITOR:-nano} "$TEMP_FILE"
