@@ -6,13 +6,6 @@ To-Do lists (with priorities)
 Code snippets (with language support)
 Daily journal (with gratitude, reflection)
 
-2. Tag System
-
-Automatic tag extraction from notes using #tagname
-Tag filtering - view only notes with specific tags
-Tag index with note counts
-Tags displayed in note listings
-
 3. Archive System
 
 Archive old notes to keep main list clean
@@ -56,10 +49,14 @@ Code blocks show which number to press for copying
 Better visual distinction for code blocks
 Multi-language syntax highlighting labels
 
-9. Tag Highlighting
 
-Tags are automatically highlighted in yellow
-Tags appear in inline text with special formatting
+
+
+
+
+
+
+
 
 📋 All Keyboard Shortcuts:
 Main Screen:

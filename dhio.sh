@@ -540,78 +540,100 @@ search_notes_fuzzy() {
 
     while true; do
         clear
+        # Header banner
         echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}"
         echo -e "${BOLD}${CYAN}     FUZZY SEARCH${RESET}"
         echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}\n"
+        # Search input line
+        echo -e "${BOLD}${CYAN}Search:${RESET} ${YELLOW}${search_term}${RESET}\n"
 
-        echo -e "${YELLOW}Search:${RESET} $search_term${CYAN}_${RESET}\n"
-
-        # Filter notes based on search term
-        declare -a filtered_notes
-        declare -a filtered_indices
-        local count=0
-
-        for i in "${!notes[@]}"; do
-            local note="${notes[$i]}"
-            local heading=$(head -n 1 "$note" | sed 's/^#* *//')
-            local content=$(cat "$note")
-
-            # Fuzzy match: check if search term chars appear in order
-            if [[ -z "$search_term" ]] || echo "$heading$content" | grep -iq "$(echo "$search_term" | sed 's/./&.*/g')"; then
-                filtered_notes+=("$note")
-                filtered_indices+=("$i")
-
-                # Highlight selected item
-                if [ $count -eq $selected_index ]; then
-                    echo -e "${PURPLE}▸${RESET} ${BOLD}$heading${RESET}"
-                else
-                    echo -e "  ${DIM}$heading${RESET}"
+        # Build filtered list
+        local filtered_notes=()
+        for n in "${notes[@]}"; do
+            if [ -z "$search_term" ]; then
+                filtered_notes+=("$n")
+            else
+                if grep -iq -- "$search_term" "$n" 2>/dev/null; then
+                    filtered_notes+=("$n")
                 fi
-                ((count++))
             fi
         done
 
+        # Ensure selected_index is within bounds
         if [ ${#filtered_notes[@]} -eq 0 ]; then
-            echo -e "${DIM}No matches found${RESET}"
+            echo -e "${DIM}No matches${RESET}\n"
+        else
+            (( selected_index >= ${#filtered_notes[@]} )) && selected_index=0
+            local idx=0
+            for note in "${filtered_notes[@]}"; do
+                local title
+                title=$(head -n 1 "$note" | sed 's/^#* *//')
+                # Selection indicator
+                if [ $idx -eq $selected_index ]; then
+                    echo -e "${BLUE}[x]${RESET} ${BOLD}$title${RESET}"
+                else
+                    echo -e "${BLUE}[ ]${RESET} ${BOLD}$title${RESET}"
+                fi
+
+                # Grab one matching line from file
+                local match_line=""
+                if [ -n "$search_term" ]; then
+                    match_line=$(grep -i -m 1 -- "$search_term" "$note" 2>/dev/null || true)
+                fi
+
+                if [ -n "$match_line" ]; then
+                    match_line="${match_line#"${match_line%%[![:space:]]*}"}"
+                    local term_width
+                    term_width=$(tput cols)
+                    local preview="${match_line:0:$((term_width-6))}"
+
+                    # Highlight search term using awk for clean color output
+                    preview=$(echo "$preview" | awk -v term="$search_term" -v red="$RED" -v reset="$RESET" '
+                        BEGIN { IGNORECASE=1 }
+                        {
+                            if (term == "") { print; next }
+                            gsub(term, red "&" reset)
+                            print
+                        }' )
+                    echo -e "   ${DIM}+${RESET} ${preview}\n"
+                else
+                    echo ""
+                fi
+
+                ((idx++))
+            done
         fi
 
         draw_footer "search"
 
-        # Get key input
+        # Key handling (using get_key)
         key=$(get_key)
-
         case "$key" in
+            esc)
+                return ;; # exit search
             up)
-                if [ $selected_index -gt 0 ]; then
-                    ((selected_index--))
-                fi
+                ((selected_index--))
+                ((selected_index < 0)) && selected_index=$((${#filtered_notes[@]} - 1))
                 ;;
             down)
-                if [ $selected_index -lt $((${#filtered_notes[@]} - 1)) ]; then
-                    ((selected_index++))
+                ((selected_index++))
+                ((selected_index >= ${#filtered_notes[@]})) && selected_index=0
+                ;;
+            $'\x7f')  # Backspace
+                if [ -n "$search_term" ]; then
+                    search_term="${search_term:0:-1}"
+                    selected_index=0
                 fi
                 ;;
-            esc)
-                return
-                ;;
-            "")
-                # Enter key
+            "")  # Enter
                 if [ ${#filtered_notes[@]} -gt 0 ]; then
                     preview_note "${filtered_notes[$selected_index]}"
                     return
                 fi
                 ;;
-            $'\x7f')
-                # Backspace
-                if [ ${#search_term} -gt 0 ]; then
-                    search_term="${search_term:0:-1}"
-                    selected_index=0
-                fi
-                ;;
             *)
-                # Regular character
-                if [[ "$key" =~ [a-zA-Z0-9\ ] ]]; then
-                    search_term="${search_term}${key}"
+                if [[ "$key" =~ [[:print:]] ]]; then
+                    search_term+="$key"
                     selected_index=0
                 fi
                 ;;
