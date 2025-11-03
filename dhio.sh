@@ -47,7 +47,7 @@ draw_footer() {
     local context="$1"
     local term_width=$(tput cols)
 
-    echo -e "\n${PURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+    printf "\n${PURPLE}%${term_width}s${RESET}\n" | tr ' ' '-'
 
     case "$context" in
         main)
@@ -86,7 +86,7 @@ draw_footer() {
     done
     echo ""
 
-    echo -e "${PURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+    printf "${PURPLE}%${term_width}s${RESET}\n" | tr ' ' '-'
 }
 
 # Get single key press
