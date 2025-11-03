@@ -1,0 +1,84 @@
+1. Note Templates
+
+Blank note
+Meeting notes (with agenda, attendees, action items)
+To-Do lists (with priorities)
+Code snippets (with language support)
+Daily journal (with gratitude, reflection)
+
+2. Tag System
+
+Automatic tag extraction from notes using #tagname
+Tag filtering - view only notes with specific tags
+Tag index with note counts
+Tags displayed in note listings
+
+3. Archive System
+
+Archive old notes to keep main list clean
+Browse archived notes separately
+Restore archived notes back to main
+Permanently delete archived notes
+
+4. Sorting Options
+
+Sort by date (newest first)
+Sort by name (alphabetical)
+Sort by size (largest first)
+Cycle through with S key
+
+5. Export Functionality
+
+Export to HTML (requires pandoc or markdown)
+Export to PDF (requires pandoc + pdflatex)
+Export to plain text
+Files saved to Desktop
+
+6. Enhanced UI
+
+Beautiful gradient header with background colors
+Stats display (note count, archived count, active filters)
+Better note metadata (date, size, first tag)
+Improved code block display with copy hints
+Full-width decorative lines
+
+7. Help System
+
+Comprehensive help screen (H key)
+Keyboard shortcuts guide
+Markdown syntax reference
+Template descriptions
+Tips and tricks
+
+8. Better Code Handling
+
+Code blocks show which number to press for copying
+Better visual distinction for code blocks
+Multi-language syntax highlighting labels
+
+9. Tag Highlighting
+
+Tags are automatically highlighted in yellow
+Tags appear in inline text with special formatting
+
+📋 All Keyboard Shortcuts:
+Main Screen:
+
+N - New note with templates
+1-9 - Open note
+D - Delete
+/ - Fuzzy search
+T - Filter by tags
+S - Change sort order
+A - View archives
+H - Help
+ESC - Exit
+
+Note Preview:
+
+E - Edit
+D - Delete
+A - Archive
+X - Export
+C1-9 - Copy code block
+ESC - Back
