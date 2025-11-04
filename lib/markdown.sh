@@ -1,5 +1,5 @@
 #!/bin/bash
-# Markdown rendering
+# Markdown rendering for Dhio Notes App
 
 # Process inline markdown formatting with tag support
 process_inline() {

@@ -1,5 +1,12 @@
 #!/bin/bash
-# Utility functions
+# Utility functions for Dhio Notes App
+
+# Initialize notes directory
+init_notes_dir() {
+    mkdir -p "$NOTES_DIR"
+    mkdir -p "$NOTEBIN_DIR"
+    mkdir -p "$ARCHIVE_DIR"
+}
 
 # Send notification
 send_notification() {
@@ -16,12 +23,11 @@ get_key() {
     IFS= read -rsn1 key 2>/dev/null
     if [[ $key == $'\x1b' ]]; then
         read -rsn2 -t 0.1 key2
-        if [[ $key2 == "[A" ]]; then echo "up"
-        elif [[ $key2 == "[B" ]]; then echo "down"
-        elif [[ $key2 == "[C" ]]; then echo "right"
-        elif [[ $key2 == "[D" ]]; then echo "left"
-        else echo "esc"
-        fi
+        if [[ $key2 == "[A" ]]; then echo "up";
+        elif [[ $key2 == "[B" ]]; then echo "down";
+        elif [[ $key2 == "[C" ]]; then echo "right";
+        elif [[ $key2 == "[D" ]]; then echo "left";
+        else echo "esc"; fi
     else
         echo "$key"
     fi
@@ -46,10 +52,4 @@ copy_code_block() {
         echo "$code_content" > "$CODE_TEMP"
         return 1
     fi
-}
-
-# Initialize notes directory
-init_notes_dir() {
-    mkdir -p "$NOTES_DIR"
-    mkdir -p "$NOTEBIN_DIR"
 }

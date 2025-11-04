@@ -1,5 +1,21 @@
 #!/bin/bash
-# UI functions
+# UI functions for Dhio Notes App
+
+# Colors - Tokyo Night theme
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+BOLD='\033[1m'
+DIM='\033[2m'
+STRIKETHROUGH='\033[9m'
+PURPLE='\033[38;5;141m'
+DARK_PURPLE='\033[38;5;98m'
+GRAY='\033[38;5;240m'
+RESET='\033[0m'
 
 # Draw footer menu
 draw_footer() {
@@ -7,15 +23,12 @@ draw_footer() {
     local term_width=$(tput cols)
     printf "\n${PURPLE}%${term_width}s${RESET}\n" | tr ' ' '-'
     case "$context" in
-	    main)
-	        local items=("${PURPLE}[N]${RESET} New" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[A]${RESET} Archive" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[/]${RESET} Search" "${PURPLE}[ESC]${RESET} Exit")
-	        ;;
-		archive)
-            local items=("${PURPLE}[SPACE]${RESET} Select" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[X]${RESET} Purge" "${PURPLE}[ESC]${RESET} Back")
+        main)
+            local items=("${PURPLE}[N]${RESET} New" "${PURPLE}[A]${RESET} Archive" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[/]${RESET} Search" "${PURPLE}[ESC]${RESET} Exit")
             ;;
-		preview)
-		    local items=("${PURPLE}[E]${RESET} Edit" "${PURPLE}[A]${RESET} Archive" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[C1-9]${RESET} Copy code" "${PURPLE}[ESC]${RESET} Back")
-		    ;;
+        preview)
+            local items=("${PURPLE}[E]${RESET} Edit" "${PURPLE}[A]${RESET} Archive" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[C1-9]${RESET} Copy code" "${PURPLE}[ESC]${RESET} Back")
+            ;;
         search)
             local items=("${PURPLE}Type${RESET} to filter" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[ENTER]${RESET} Open" "${PURPLE}[ESC]${RESET} Cancel")
             ;;
@@ -23,7 +36,10 @@ draw_footer() {
             local items=("${PURPLE}[Y]${RESET} Yes" "${PURPLE}[N]${RESET} No" "${PURPLE}[ESC]${RESET} Cancel")
             ;;
         notebin)
-            local items=("${PURPLE}[SPACE]${RESET} Select" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[X/D]${RESET} Purge" "${PURPLE}[ESC]${RESET} Back")
+            local items=("${PURPLE}[SPACE]${RESET} Select" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[X]${RESET} Purge" "${PURPLE}[ESC]${RESET} Back")
+            ;;
+        archive)
+            local items=("${PURPLE}[SPACE]${RESET} Select" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[X]${RESET} Purge" "${PURPLE}[ESC]${RESET} Back")
             ;;
     esac
     local num_items=${#items[@]}

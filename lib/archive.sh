@@ -1,9 +1,43 @@
 #!/bin/bash
-# Archive logic (mirrors notebin.sh)
+# Archive logic for Dhio Notes App
 
-# Ensure archive directory exists
-mkdir -p "$ARCHIVE_DIR"
+# Archive a note (move to archive directory)
+archive_note() {
+    local filepath="$1"
+    if [ ! -f "$filepath" ]; then
+        send_notification "Notes App" "Note not found"
+        sleep 1
+        return
+    fi
+    local heading
+    heading=$(head -n 1 "$filepath" | sed 's/^#* *//')
+    clear
+    echo -e "${YELLOW}${BOLD}═══════════════════════════════════════${RESET}"
+    echo -e "${YELLOW}${BOLD}     ARCHIVE NOTE${RESET}"
+    echo -e "${YELLOW}${BOLD}═══════════════════════════════════════${RESET}\n"
+    echo -e "${CYAN}Archive note: ${BOLD}$heading${RESET}"
+    echo -e "\n${DIM}Note will be moved to archive (can be restored later)${RESET}\n"
+    draw_footer "delete"
+    while true; do
+        key=$(get_key)
+        case "$key" in
+            y|Y)
+                local basename=$(basename "$filepath")
+                mv "$filepath" "$ARCHIVE_DIR/$basename"
+                send_notification "Notes App" "Note archived: $heading"
+                sleep 1
+                return
+                ;;
+            n|N|esc)
+                send_notification "Notes App" "Action cancelled"
+                sleep 1
+                return
+                ;;
+        esac
+    done
+}
 
+# Archive menu (mirrors notebin menu)
 archive_menu() {
     local archived_notes=("$ARCHIVE_DIR"/*.md)
     if [ ! -e "${archived_notes[0]}" ]; then
@@ -34,7 +68,7 @@ archive_menu() {
             read -rsn1
             return
         fi
-        # Clamp index
+        # --- Clamp index ---
         (( current_index < 0 )) && current_index=0
         (( current_index >= ${#note_array[@]} )) && current_index=$(( ${#note_array[@]} - 1 ))
         # --- Render UI ---

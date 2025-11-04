@@ -1,3 +1,5 @@
+#!/bin/bash
+# Notebin menu - show deleted notes with restore capability
 notebin_menu() {
     local deleted_notes=("$NOTEBIN_DIR"/*.md)
     if [ ! -e "${deleted_notes[0]}" ]; then
@@ -10,16 +12,12 @@ notebin_menu() {
         read -rsn1
         return
     fi
-
     declare -A selected_notes
     local current_index=0
     local note_array=()
-
-    # Build initial array
     for note in "$NOTEBIN_DIR"/*.md; do
         [ -f "$note" ] && note_array+=("$note")
     done
-
     while true; do
         # --- Handle empty bin ---
         if [ ${#note_array[@]} -eq 0 ]; then
@@ -32,39 +30,33 @@ notebin_menu() {
             read -rsn1
             return
         fi
-
-        # Clamp index
+        # --- Clamp index ---
         (( current_index < 0 )) && current_index=0
         (( current_index >= ${#note_array[@]} )) && current_index=$(( ${#note_array[@]} - 1 ))
-
         # --- Render UI ---
         clear
         echo ""
         center_text "🗑️ Note Bin"
         echo ""
-
         local selected_count=0
         for note in "${!selected_notes[@]}"; do
             [ "${selected_notes[$note]}" = "true" ] && ((selected_count++))
         done
         ((selected_count > 0)) && echo -e "\n${CYAN}Selected: ${selected_count} note(s)${RESET}\n" || echo ""
-
         for i in "${!note_array[@]}"; do
             local note="${note_array[$i]}"
             local heading=$(head -n 1 "$note" | sed 's/^#* *//')
             local date=$(date -r "$note" "+%Y-%m-%d %H:%M")
             local is_selected="${selected_notes[$note]:-false}"
-
             if [ $i -eq $current_index ]; then
                 echo -e "${BLUE}→${RESET} $(format_note_line $((i+1)) "$heading" "$date" "$is_selected")"
             else
                 echo -e "  $(format_note_line $((i+1)) "$heading" "$date" "$is_selected")"
             fi
         done
-
+        # --- Footer and Input ---
         draw_footer "notebin"
         key=$(get_key)
-
         case "$key" in
             up)
                 ((current_index--))
@@ -94,7 +86,7 @@ notebin_menu() {
                 if ((restore_count > 0)); then
                     send_notification "Notes App" "$restore_count note(s) restored"
                     sleep 1
-                    # Refresh list safely
+                    # Refresh list
                     note_array=()
                     for note in "$NOTEBIN_DIR"/*.md; do
                         [ -f "$note" ] && note_array+=("$note")
@@ -106,7 +98,6 @@ notebin_menu() {
                 fi
                 ;;
             d|D|x|X)
-                # Combine permanent delete & purge logic for simplicity
                 local delete_count=0
                 for note in "${!selected_notes[@]}"; do
                     [ "${selected_notes[$note]}" = "true" ] && ((delete_count++))
@@ -116,14 +107,12 @@ notebin_menu() {
                     sleep 1
                     continue
                 fi
-
                 clear
                 echo -e "${RED}${BOLD}═══════════════════════════════════════${RESET}"
                 echo -e "${RED}${BOLD}     PERMANENT DELETION${RESET}"
                 echo -e "${RED}${BOLD}═══════════════════════════════════════${RESET}\n"
                 echo -e "${RED}${BOLD}This will permanently delete ${delete_count} note(s)!${RESET}"
                 echo -e "${YELLOW}[Y]${RESET} Confirm    ${YELLOW}[N]${RESET} Cancel\n"
-
                 read -rsn1 confirm
                 if [[ "$confirm" =~ [yY] ]]; then
                     local deleted=0

@@ -71,3 +71,20 @@ A - Archive
 X - Export
 C1-9 - Copy code block
 ESC - Back
+
+
+"Feature","Benefit","Implementation Difficulty"
+"Tags & Categories","Better organization","Easy"
+"Note Sorting","Find notes faster","Easy"
+"Enhanced Search","Quickly locate notes","Medium"
+"Note Previews","Preview content at a glance","Easy"
+"Dark/Light Theme","Better readability","Easy"
+"Quick Note","Faster note-taking","Easy"
+"Note Templates","Consistent note structure","Medium"
+"Daily Notes","Track daily activities","Easy"
+"Note Encryption","Secure sensitive notes","Medium"
+"Export/Import","Backup/migrate notes","Medium"
+"Git Versioning","Track changes over time","Medium"
+"Calendar Integration","Set reminders for notes","Hard"
+"Cloud Sync","Access notes anywhere","Medium"
+"CLI Integration","Scriptable note management","Medium"
