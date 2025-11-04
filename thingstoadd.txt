@@ -1,90 +1,98 @@
-B. Archive System
-
-  - Archive old notes to keep main list clean
-  - Browse archived notes separately
-  - Restore archived notes back to main
-  - Permanently delete archived notes (also from notebin)
+1. Tagging & Filtering
+	- What: Add @tag support (e.g., @work, @personal) and filter notes by tags.
+	- Why: Better organization and quicker access to related notes.
 
 
-
-C. Sorting Options
-
-  - Sort by date (newest first)
-  - Sort by name (alphabetical)
-  - Sort by size (largest first)
-  - Cycle through with S key
+2. Note Sorting
+- What: Sort notes by name, date modified, or date created.
+- Why: Helps users find recent or alphabetically ordered notes faster.
 
 
-  ---------------------------------------------------------------------------------------
+3. Quick Note (No Editor)
+	- What: Add a note directly from the terminal without opening an editor.
+	- Why: Faster for short, spontaneous notes.
 
 
-
-6. Enhanced UI
-
-  - Beautiful gradient header with background colors
-  - Stats display (note count, archived count, active filters)
-  - Better note metadata (date, size, first tag)
-  - Improved code block display with copy hints
-  - Full-width decorative lines
+4. Note Templates
+	- What: Predefined templates (e.g., meeting notes, todo lists, code snippets).
+	- Why: Saves time and ensures consistent note structure.
 
 
-
-7. Help System
-
-  - Comprehensive help screen (H key)
-  - Keyboard shortcuts guide
-  - Markdown syntax reference
-  - Template descriptions
-  - Tips and tricks
+5. Daily Notes
+	- What: Auto-create daily notes (e.g., 2025-11-05.md) with a template.
+	- Why: Great for journals, daily logs, or standup notes.
 
 
-
-8. Better Code Handling
-
-  - Code blocks show which number to press for copying
-  - Better visual distinction for code blocks
-  - Multi-language syntax highlighting labels
+6. Note Encryption
+	- What: Encrypt sensitive notes using gpg or openssl.
+	- Why: Secure private or confidential notes.
 
 
+7. Git Versioning
+	- What: Track note changes with Git (auto-commit on save).
+	- Why: Version control for notes, easy rollback.
 
 
+8. Cloud Sync (Dropbox/Google Drive)
+	- What: Sync notes to cloud storage using rclone.
+	- Why: Access notes anywhere, backup protection.
 
 
+9. Export/Import
+	- What: Export notes to Markdown/PDF/HTML, or import from other formats.
+	- Why: Backup, migration, or sharing notes easily.
 
 
+10. Calendar/Reminder Integration
+	- What: Set reminders for notes (e.g., "Review this note on 2025-11-10").
+	- Why: Never miss important follow-ups.
 
 
-📋 All Keyboard Shortcuts:
-Main Screen:
-
-T - Filter by tags
-S - Change sort order
-A - View archives
-H - Help
-ESC - Exit
-
-Note Preview:
-
-E - Edit
-D - Delete
-A - Archive
-X - Export
-C1-9 - Copy code block
-ESC - Back
+11. CLI Integration
+	- What: Manage notes via CLI (e.g., dhio add "My note").
+	- Why: Scriptable and automatable note management.
 
 
-"Feature","Benefit","Implementation Difficulty"
-"Tags & Categories","Better organization","Easy"
-"Note Sorting","Find notes faster","Easy"
-"Enhanced Search","Quickly locate notes","Medium"
-"Note Previews","Preview content at a glance","Easy"
-"Dark/Light Theme","Better readability","Easy"
-"Quick Note","Faster note-taking","Easy"
-"Note Templates","Consistent note structure","Medium"
-"Daily Notes","Track daily activities","Easy"
-"Note Encryption","Secure sensitive notes","Medium"
-"Export/Import","Backup/migrate notes","Medium"
-"Git Versioning","Track changes over time","Medium"
-"Calendar Integration","Set reminders for notes","Hard"
-"Cloud Sync","Access notes anywhere","Medium"
-"CLI Integration","Scriptable note management","Medium"
+12. Note History (Undo/Redo)
+	- What: Track changes and allow undo/redo for notes.
+	- Why: Recover from mistakes or track evolution.
+
+
+13. Syntax Highlighting for Code
+	- What: Use pygmentize or bat for better code block rendering.
+	- Why: Improves readability for developers.
+
+
+14. Dark/Light Theme Toggle
+	- What: Let users switch between dark and light themes.
+	- Why: Better readability in different lighting.
+
+
+15. Note Statistics
+	- What: Show stats like total notes, notes by tag, etc.
+	- Why: Helps users track productivity or usage.
+
+
+16. Multi-Select in Main Menu
+	- What: Select multiple notes in the main menu (like Notebin/Archive).
+	- Why: Batch actions (e.g., archive/delete multiple notes).
+
+
+17. Note Sharing (Export to PDF/HTML)
+	- What: Share notes as PDF/HTML via pandoc.
+	- Why: Easy collaboration or publishing.
+
+
+18. Auto-Save on Edit
+	- What: Auto-save notes during editing (e.g., every 30 seconds).
+	- Why: Prevents data loss.
+
+
+19. Note Linking
+	- What: Link notes together (e.g., [[Note 1]]).
+	- Why: Build a knowledge graph or wiki.
+
+
+20. Mobile/SSH Support
+	- What: Optimize for mobile terminals or SSH.
+	- Why: Access notes from anywhere.
