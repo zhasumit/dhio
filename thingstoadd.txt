@@ -1,11 +1,3 @@
-A. Restore deleted notes 
-  - deleted notes go to notebin folder 
-  - a list of notes will show 
-  - space to select the note 
-  - once a set of notes are selected, they can be restored
-
-
-
 B. Archive System
 
   - Archive old notes to keep main list clean
@@ -23,29 +15,7 @@ C. Sorting Options
   - Cycle through with S key
 
 
-
-
----------------------------------------------------------------------------------------
-
-
-
-1. Note Templates
-
-Blank note
-  - Meeting notes (with agenda, attendees, action items)
-  - To-Do lists (with priorities)
-  - Code snippets (with language support)
-  - Daily journal (with gratitude, reflection)
-  - add more and more templates and also user can make the templates
-
-
-
-5. Export Functionality
-
-  - Export to HTML (requires pandoc or markdown)
-  - Export to PDF (requires pandoc + pdflatex)
-  - Export to plain text
-  - Files saved to documents/dhiodocs in home folder 
+  ---------------------------------------------------------------------------------------
 
 
 
@@ -87,10 +57,6 @@ Blank note
 📋 All Keyboard Shortcuts:
 Main Screen:
 
-N - New note with templates
-1-9 - Open note
-D - Delete
-/ - Fuzzy search
 T - Filter by tags
 S - Change sort order
 A - View archives
@@ -105,3 +71,20 @@ A - Archive
 X - Export
 C1-9 - Copy code block
 ESC - Back
+
+
+"Feature","Benefit","Implementation Difficulty"
+"Tags & Categories","Better organization","Easy"
+"Note Sorting","Find notes faster","Easy"
+"Enhanced Search","Quickly locate notes","Medium"
+"Note Previews","Preview content at a glance","Easy"
+"Dark/Light Theme","Better readability","Easy"
+"Quick Note","Faster note-taking","Easy"
+"Note Templates","Consistent note structure","Medium"
+"Daily Notes","Track daily activities","Easy"
+"Note Encryption","Secure sensitive notes","Medium"
+"Export/Import","Backup/migrate notes","Medium"
+"Git Versioning","Track changes over time","Medium"
+"Calendar Integration","Set reminders for notes","Hard"
+"Cloud Sync","Access notes anywhere","Medium"
+"CLI Integration","Scriptable note management","Medium"
