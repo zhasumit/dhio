@@ -1,4 +1,119 @@
 #!/bin/bash
+# Notebin logic for Dhio Notes App
+
+# Search deleted notes
+search_deleted_notes() {
+    local deleted_notes=("$NOTEBIN_DIR"/*.md)
+    local search_term=""
+    local selected_index=0
+
+    while true; do
+        clear
+        echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}"
+        echo -e "${BOLD}${CYAN}     SEARCH NOTEBIN${RESET}"
+        echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}\n"
+        echo -e "${BOLD}${CYAN}Search:${RESET} ${YELLOW}${search_term}${RESET}\n"
+
+        local filtered_notes=()
+        local match_lines=()
+
+        for note in "$NOTEBIN_DIR"/*.md; do
+            if [ -f "$note" ]; then
+                local heading=$(head -n 1 "$note" | sed 's/^#* *//')
+                local content=$(cat "$note")
+
+                if [ -z "$search_term" ] ||
+                   [[ "$heading" =~ $search_term ]] ||
+                   [[ "$content" =~ $search_term ]]; then
+                    filtered_notes+=("$note")
+
+                    if [ -n "$search_term" ]; then
+                        local match_line=$(grep -m 1 -i -- "$search_term" "$note" 2>/dev/null || echo "")
+                        if [ -n "$match_line" ]; then
+                            match_line=$(echo "$match_line" | sed "s/$search_term/${RED}&${RESET}/gi")
+                            match_lines+=("$match_line")
+                        else
+                            match_lines+=("")
+                        fi
+                    else
+                        match_lines+=("")
+                    fi
+                fi
+            fi
+        done
+
+        if [ ${#filtered_notes[@]} -eq 0 ]; then
+            echo -e "${DIM}No matches found${RESET}\n"
+        else
+            (( selected_index >= ${#filtered_notes[@]} )) && selected_index=0
+
+            for i in "${!filtered_notes[@]}"; do
+                local note="${filtered_notes[$i]}"
+                local heading=$(head -n 1 "$note" | sed 's/^#* *//')
+                local date=$(date -r "$note" "+%Y-%m-%d %H:%M")
+                local tags=$(extract_tags "$note")
+
+                if [ -n "$search_term" ]; then
+                    heading=$(echo "$heading" | sed "s/$search_term/${RED}&${RESET}/gi")
+                fi
+
+                if [ $i -eq $selected_index ]; then
+                    echo -e "${BLUE}→${RESET}    ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET}"
+                    echo -e "    ${TAG_COLOR}↳ ${tags}${RESET}"
+
+                    if [ -n "${match_lines[$i]}" ]; then
+                        echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
+                    else
+                        echo ""
+                    fi
+                else
+                    echo -e "     ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET}"
+                    echo -e "    ${TAG_COLOR}↳ ${tags}${RESET}"
+
+                    if [ -n "${match_lines[$i]}" ]; then
+                        echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
+                    else
+                        echo ""
+                    fi
+                fi
+            done
+        fi
+
+        draw_footer "search"
+        key=$(get_key)
+
+        case "$key" in
+            esc) return ;;
+            up)
+                ((selected_index--))
+                ((selected_index < 0)) && selected_index=$(( ${#filtered_notes[@]} - 1 ))
+                ;;
+            down)
+                ((selected_index++))
+                ((selected_index >= ${#filtered_notes[@]})) && selected_index=0
+                ;;
+            $'\x7f')  # Backspace
+                if [ -n "$search_term" ]; then
+                    search_term="${search_term:0:-1}"
+                    selected_index=0
+                fi
+                ;;
+            "")
+                if [ ${#filtered_notes[@]} -gt 0 ]; then
+                    preview_note "${filtered_notes[$selected_index]}"
+                    return
+                fi
+                ;;
+            *)
+                if [[ "$key" =~ [[:print:]] ]]; then
+                    search_term+="$key"
+                    selected_index=0
+                fi
+                ;;
+        esac
+    done
+}
+
 # Notebin menu - show deleted notes with restore capability
 notebin_menu() {
     local deleted_notes=("$NOTEBIN_DIR"/*.md)
@@ -47,11 +162,14 @@ notebin_menu() {
             local note="${note_array[$i]}"
             local heading=$(head -n 1 "$note" | sed 's/^#* *//')
             local date=$(date -r "$note" "+%Y-%m-%d %H:%M")
+            local tags=$(extract_tags "$note")
             local is_selected="${selected_notes[$note]:-false}"
             if [ $i -eq $current_index ]; then
-                echo -e "${BLUE}→${RESET} $(format_note_line $((i+1)) "$heading" "$date" "$is_selected")"
+                echo -e "${BLUE}→${RESET}    ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET}"
+                echo -e "    ${TAG_COLOR}↳ ${tags}${RESET}\n"
             else
-                echo -e "  $(format_note_line $((i+1)) "$heading" "$date" "$is_selected")"
+                echo -e "     ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET}"
+                echo -e "    ${TAG_COLOR}↳ ${tags}${RESET}\n"
             fi
         done
         # --- Footer and Input ---
@@ -132,6 +250,10 @@ notebin_menu() {
                     done
                     ((current_index>=${#note_array[@]})) && current_index=$(( ${#note_array[@]} - 1 ))
                 fi
+                ;;
+            /)
+                search_deleted_notes
+                return
                 ;;
             esc)
                 return

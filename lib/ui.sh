@@ -16,6 +16,9 @@ PURPLE='\033[38;5;141m'
 DARK_PURPLE='\033[38;5;98m'
 GRAY='\033[38;5;240m'
 RESET='\033[0m'
+# Tag styling
+TAG_COLOR='\033[38;5;208m'  # Orange
+TAG_BG='\033[48;5;238m'    # Light gray background
 
 # Draw footer menu
 draw_footer() {
@@ -24,22 +27,25 @@ draw_footer() {
     printf "\n${PURPLE}%${term_width}s${RESET}\n" | tr ' ' '-'
     case "$context" in
         main)
-            local items=("${PURPLE}[N]${RESET} New" "${PURPLE}[A]${RESET} Archive" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[/]${RESET} Search" "${PURPLE}[ESC]${RESET} Exit")
+            local items=("${PURPLE}[N]${RESET} New" "${PURPLE}[A]${RESET} Archive" "${PURPLE}[T]${RESET} Filter by Tag" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[/]${RESET} Search" "${PURPLE}[ESC]${RESET} Exit")
             ;;
         preview)
             local items=("${PURPLE}[E]${RESET} Edit" "${PURPLE}[A]${RESET} Archive" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[C1-9]${RESET} Copy code" "${PURPLE}[ESC]${RESET} Back")
             ;;
         search)
-            local items=("${PURPLE}Type${RESET} to filter" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[ENTER]${RESET} Open" "${PURPLE}[ESC]${RESET} Cancel")
+            local items=("${PURPLE}Type${RESET} to search" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[ENTER]${RESET} Open" "${PURPLE}[ESC]${RESET} Cancel")
+            ;;
+        tagsearch)
+            local items=("${PURPLE}Type${RESET} to filter by tag" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[ENTER]${RESET} Open" "${PURPLE}[ESC]${RESET} Cancel")
             ;;
         delete)
             local items=("${PURPLE}[Y]${RESET} Yes" "${PURPLE}[N]${RESET} No" "${PURPLE}[ESC]${RESET} Cancel")
             ;;
         notebin)
-            local items=("${PURPLE}[SPACE]${RESET} Select" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[X]${RESET} Purge" "${PURPLE}[ESC]${RESET} Back")
+            local items=("${PURPLE}[SPACE]${RESET} Select" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[X]${RESET} Purge" "${PURPLE}[/]${RESET} Search" "${PURPLE}[ESC]${RESET} Back")
             ;;
         archive)
-            local items=("${PURPLE}[SPACE]${RESET} Select" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[X]${RESET} Purge" "${PURPLE}[ESC]${RESET} Back")
+            local items=("${PURPLE}[SPACE]${RESET} Select" "${PURPLE}[↑↓]${RESET} Navigate" "${PURPLE}[R]${RESET} Restore" "${PURPLE}[D]${RESET} Delete" "${PURPLE}[X]${RESET} Purge" "${PURPLE}[/]${RESET} Search" "${PURPLE}[ESC]${RESET} Back")
             ;;
     esac
     local num_items=${#items[@]}
@@ -61,32 +67,29 @@ draw_footer() {
     printf "${PURPLE}%${term_width}s${RESET}\n" | tr ' ' '-'
 }
 
-# Format note line with justified layout
+# Format note line with improved layout
 format_note_line() {
     local num="$1"
     local heading="$2"
     local date="$3"
     local selected="$4"
+    local tags="$5"
     local term_width=$(tput cols)
-    local num_part="${YELLOW}[$num]${RESET} ${BOLD}"
-    local date_part="${RESET}${DIM}$date${RESET}"
+    local left_padding="    "  # 4 spaces on the left
+    local num_part="${left_padding}${YELLOW}[$num]${RESET} ${BOLD}${heading}${RESET}"
+    local date_part="${DIM}$date${RESET}"
     local select_indicator=""
     if [ "$selected" = "true" ]; then
         select_indicator="${GREEN}[✓]${RESET} "
     else
         select_indicator="${GRAY}[ ]${RESET} "
     fi
-    local num_len=$((${#num} + 3))
-    local date_len=${#date}
-    local select_len=4
-    local available_width=$((term_width - num_len - date_len - select_len - 3))
-    local display_heading="$heading"
-    if [ ${#heading} -gt $available_width ]; then
-        display_heading="${heading:0:$((available_width - 3))}..."
+    # Print note line
+    printf "%s%s\n" "${select_indicator}${num_part}" "${date_part}"
+    # Print tags on new line with indentation
+    if [ -n "$tags" ]; then
+        printf "%s${TAG_COLOR}↳ %s${RESET}\n" "$left_padding" "$tags"
     fi
-    local padding_len=$((term_width - num_len - select_len - ${#display_heading} - date_len - 3))
-    local padding=$(printf '%*s' "$padding_len" '')
-    echo -e "${select_indicator}${YELLOW}[$num]${RESET} ${BOLD}${display_heading}${RESET}${padding}${DIM}$date${RESET}"
 }
 
 # Center text in terminal

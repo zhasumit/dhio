@@ -4,8 +4,8 @@
 
 
 2. Note Sorting
-- What: Sort notes by name, date modified, or date created.
-- Why: Helps users find recent or alphabetically ordered notes faster.
+	- What: Sort notes by name, date modified, or date created.
+	- Why: Helps users find recent or alphabetically ordered notes faster.
 
 
 3. Quick Note (No Editor)
