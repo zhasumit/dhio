@@ -29,6 +29,7 @@ create_note() {
     if [ -f "$TEMP_FILE" ]; then
         cp "$TEMP_FILE" "$filepath"
         rm "$TEMP_FILE"
+        save_note_history "$filepath"
         send_notification "Notes App" "Note created: $heading"
         CURRENT_NOTE="$filepath"
         preview_note "$filepath"

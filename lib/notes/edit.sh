@@ -8,7 +8,15 @@ edit_note() {
         sleep 1
         return
     fi
+    
+    # Save history before editing
+    save_note_history "$filepath"
+    
     ${EDITOR:-nano} "$filepath"
+    
+    # Save history after editing
+    save_note_history "$filepath"
+    
     local heading
     heading=$(head -n 1 "$filepath" | sed 's/^#* *//')
     send_notification "Notes App" "Note updated: $heading"

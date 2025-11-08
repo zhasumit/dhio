@@ -1,5 +1,5 @@
 #!/bin/bash
-# Archive logic for Dhio Notes App
+# Archive feature for Dhio Notes App
 
 # Archive a note (move to archive directory)
 archive_note() {
@@ -89,24 +89,33 @@ search_archived_notes() {
                     heading=$(echo "$heading" | sed "s/$search_term/${RED}&${RESET}/gi")
                 fi
 
+                local term_width=$(tput cols)
+                local left_part=""
                 if [ $i -eq $selected_index ]; then
-                    echo -e "${BLUE}→${RESET}    ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET}"
-                    echo -e "    ${TAG_COLOR}↳ ${tags}${RESET}"
-
-                    if [ -n "${match_lines[$i]}" ]; then
-                        echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
-                    else
-                        echo ""
-                    fi
+                    left_part="${BLUE}→${RESET}    ${YELLOW}$((i+1))${RESET} ${BOLD}${heading}${RESET}"
                 else
-                    echo -e "     ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET}"
-                    echo -e "    ${TAG_COLOR}↳ ${tags}${RESET}"
+                    left_part="     ${YELLOW}$((i+1))${RESET} ${BOLD}${heading}${RESET}"
+                fi
+                
+                local left_plain=$(echo -e "$left_part" | sed 's/\x1b\[[0-9;]*m//g')
+                local left_len=${#left_plain}
+                local date_len=${#date}
+                local padding=$((term_width - left_len - date_len))
+                
+                if [ $padding -gt 0 ]; then
+                    echo -e "$left_part$(printf '%*s' $padding '')${DIM}${date}${RESET}"
+                else
+                    echo -e "$left_part ${DIM}${date}${RESET}"
+                fi
+                
+                if [ -n "$tags" ]; then
+                    echo -e "      ${TAG_COLOR}• ${tags}${RESET}"
+                fi
 
-                    if [ -n "${match_lines[$i]}" ]; then
-                        echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
-                    else
-                        echo ""
-                    fi
+                if [ -n "${match_lines[$i]}" ]; then
+                    echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
+                else
+                    echo ""
                 fi
             done
         fi
@@ -196,13 +205,35 @@ archive_menu() {
             local date=$(date -r "$note" "+%Y-%m-%d %H:%M")
             local tags=$(extract_tags "$note")
             local is_selected="${selected_notes[$note]:-false}"
-            if [ $i -eq $current_index ]; then
-                echo -e "${BLUE}→${RESET}    ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET}"
-                echo -e "    ${TAG_COLOR}↳ ${tags}${RESET}\n"
+            local select_indicator=""
+            if [ "$is_selected" = "true" ]; then
+                select_indicator="${GREEN}✓${RESET} "
             else
-                echo -e "     ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET}"
-                echo -e "    ${TAG_COLOR}↳ ${tags}${RESET}\n"
+                select_indicator="${GRAY}○${RESET} "
             fi
+            local term_width=$(tput cols)
+            local left_part=""
+            if [ $i -eq $current_index ]; then
+                left_part="${BLUE}→${RESET} ${select_indicator}${YELLOW}$((i+1))${RESET} ${BOLD}${heading}${RESET}"
+            else
+                left_part="  ${select_indicator}${YELLOW}$((i+1))${RESET} ${BOLD}${heading}${RESET}"
+            fi
+            
+            local left_plain=$(echo -e "$left_part" | sed 's/\x1b\[[0-9;]*m//g')
+            local left_len=${#left_plain}
+            local date_len=${#date}
+            local padding=$((term_width - left_len - date_len))
+            
+            if [ $padding -gt 0 ]; then
+                echo -e "$left_part$(printf '%*s' $padding '')${DIM}${date}${RESET}"
+            else
+                echo -e "$left_part ${DIM}${date}${RESET}"
+            fi
+            
+            if [ -n "$tags" ]; then
+                echo -e "      ${TAG_COLOR}🏷️  ${tags}${RESET}"
+            fi
+            echo ""
         done
         # --- Footer and Input ---
         draw_footer "archive"
@@ -224,37 +255,53 @@ archive_menu() {
                     selected_notes[$current_note]="true"
                 fi
                 ;;
+            "")
+                if [ ${#note_array[@]} -gt 0 ]; then
+                    preview_note "${note_array[$current_index]}"
+                    return
+                fi
+                ;;
             r|R)
                 local restore_count=0
+                local restored_names=()
                 for note in "${!selected_notes[@]}"; do
                     if [ "${selected_notes[$note]}" = "true" ] && [ -f "$note" ]; then
-                        mv "$note" "$NOTES_DIR/"
-                        ((restore_count++))
-                        unset selected_notes[$note]
+                        local basename=$(basename "$note")
+                        local heading=$(head -n 1 "$note" | sed 's/^#* *//')
+                        if mv "$note" "$NOTES_DIR/$basename" 2>/dev/null; then
+                            ((restore_count++))
+                            restored_names+=("$heading")
+                            unset selected_notes[$note]
+                        fi
                     fi
                 done
                 if ((restore_count > 0)); then
                     send_notification "Notes App" "$restore_count note(s) restored"
-                    sleep 1
                     # Refresh list
                     note_array=()
                     for note in "$ARCHIVE_DIR"/*.md; do
                         [ -f "$note" ] && note_array+=("$note")
                     done
                     ((current_index>=${#note_array[@]})) && current_index=$(( ${#note_array[@]} - 1 ))
+                    if [ $current_index -lt 0 ]; then
+                        current_index=0
+                    fi
                 else
                     send_notification "Notes App" "No notes selected to restore"
-                    sleep 1
                 fi
                 ;;
             d|D|x|X)
+                # Combined delete/purge
                 local delete_count=0
+                local notes_to_delete=()
                 for note in "${!selected_notes[@]}"; do
-                    [ "${selected_notes[$note]}" = "true" ] && ((delete_count++))
+                    if [ "${selected_notes[$note]}" = "true" ] && [ -f "$note" ]; then
+                        ((delete_count++))
+                        notes_to_delete+=("$note")
+                    fi
                 done
                 if ((delete_count == 0)); then
                     send_notification "Notes App" "No notes selected to delete"
-                    sleep 1
                     continue
                 fi
                 clear
@@ -266,21 +313,31 @@ archive_menu() {
                 read -rsn1 confirm
                 if [[ "$confirm" =~ [yY] ]]; then
                     local deleted=0
-                    for note in "${!selected_notes[@]}"; do
-                        if [ "${selected_notes[$note]}" = "true" ] && [ -f "$note" ]; then
-                            rm -f "$note"
-                            ((deleted++))
-                            unset selected_notes[$note]
+                    local deleted_names=()
+                    for note in "${notes_to_delete[@]}"; do
+                        if [ -f "$note" ]; then
+                            local heading=$(head -n 1 "$note" | sed 's/^#* *//')
+                            if rm -f "$note" 2>/dev/null; then
+                                ((deleted++))
+                                deleted_names+=("$heading")
+                                unset selected_notes[$note]
+                            fi
                         fi
                     done
-                    send_notification "Notes App" "$deleted note(s) permanently deleted"
-                    sleep 1
+                    if ((deleted > 0)); then
+                        for name in "${deleted_names[@]}"; do
+                            send_notification "Notes App" "Cannot recover permanently deleted: $name"
+                        done
+                    fi
                     # Refresh list
                     note_array=()
                     for note in "$ARCHIVE_DIR"/*.md; do
                         [ -f "$note" ] && note_array+=("$note")
                     done
                     ((current_index>=${#note_array[@]})) && current_index=$(( ${#note_array[@]} - 1 ))
+                    if [ $current_index -lt 0 ]; then
+                        current_index=0
+                    fi
                 fi
                 ;;
             /)

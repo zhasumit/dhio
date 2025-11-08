@@ -1,9 +1,6 @@
 #!/bin/bash
 # Search functions for Dhio Notes App
 
-# Source the tags module
-source "$(dirname "$0")/tags.sh"
-
 # Fuzzy search notes by content/title
 search_notes_fuzzy() {
     local notes=("$@")
@@ -95,25 +92,33 @@ search_notes_fuzzy() {
                     }')
                 fi
 
+                local term_width=$(tput cols)
+                local left_part=""
                 if [ $i -eq $selected_index ]; then
-                    echo -e "${BLUE}→${RESET}    ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET} ${DIM}(${filename})${RESET}"
-                    echo -e "    ${TAG_COLOR}↳ ${tags}${RESET}"
-
-                    # Show matching line preview if available
-                    if [ -n "${match_lines[$i]}" ]; then
-                        echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
-                    else
-                        echo ""
-                    fi
+                    left_part="${BLUE}→${RESET}    ${YELLOW}$((i+1))${RESET} ${BOLD}${heading}${RESET}"
                 else
-                    echo -e "     ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET} ${DIM}(${filename})${RESET}"
-                    echo -e "    ${TAG_COLOR}↳ ${tags}${RESET}"
+                    left_part="     ${YELLOW}$((i+1))${RESET} ${BOLD}${heading}${RESET}"
+                fi
+                
+                local left_plain=$(echo -e "$left_part" | sed 's/\x1b\[[0-9;]*m//g')
+                local left_len=${#left_plain}
+                local date_len=${#date}
+                local padding=$((term_width - left_len - date_len))
+                
+                if [ $padding -gt 0 ]; then
+                    echo -e "$left_part$(printf '%*s' $padding '')${DIM}${date}${RESET}"
+                else
+                    echo -e "$left_part ${DIM}${date}${RESET}"
+                fi
+                
+                if [ -n "$tags" ]; then
+                    echo -e "      ${TAG_COLOR}🏷️  ${tags}${RESET}"
+                fi
 
-                    if [ -n "${match_lines[$i]}" ]; then
-                        echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
-                    else
-                        echo ""
-                    fi
+                if [ -n "${match_lines[$i]}" ]; then
+                    echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
+                else
+                    echo ""
                 fi
             done
         fi

@@ -18,7 +18,14 @@ preview_note() {
         case "$key" in
             e|E) edit_note "$filepath"; return ;;
             a|A) archive_note "$filepath"; return ;;
-            d|D) delete_note "$filepath"; return ;;
+            d|D) 
+                delete_note "$filepath"
+                # Return to list after deletion
+                return
+                ;;
+            x|X) export_menu "$filepath"; return ;;
+            h|H) browse_note_history "$filepath"; return ;;
+            u|U) undo_note_change "$filepath"; sleep 1; preview_note "$filepath"; return ;;
             c|C)
                 read -rsn1 num
                 if [[ "$num" =~ ^[0-9]$ ]]; then

@@ -85,13 +85,29 @@ tag_search() {
                     }')
                 fi
 
+                local term_width=$(tput cols)
+                local left_part=""
                 if [ $i -eq $selected_index ]; then
-                    echo -e "${BLUE}→${RESET}    ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET} ${DIM}(${filename})${RESET}"
-                    echo -e "    ${TAG_COLOR}↳ ${display_tags}${RESET}\n"
+                    left_part="${BLUE}→${RESET}    ${YELLOW}$((i+1))${RESET} ${BOLD}${heading}${RESET}"
                 else
-                    echo -e "     ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET} ${DIM}(${filename})${RESET}"
-                    echo -e "    ${TAG_COLOR}↳ ${display_tags}${RESET}\n"
+                    left_part="     ${YELLOW}$((i+1))${RESET} ${BOLD}${heading}${RESET}"
                 fi
+                
+                local left_plain=$(echo -e "$left_part" | sed 's/\x1b\[[0-9;]*m//g')
+                local left_len=${#left_plain}
+                local date_len=${#date}
+                local padding=$((term_width - left_len - date_len))
+                
+                if [ $padding -gt 0 ]; then
+                    echo -e "$left_part$(printf '%*s' $padding '')${DIM}${date}${RESET}"
+                else
+                    echo -e "$left_part ${DIM}${date}${RESET}"
+                fi
+                
+                if [ -n "$display_tags" ]; then
+                    echo -e "      ${TAG_COLOR}🏷️  ${display_tags}${RESET}"
+                fi
+                echo ""
             done
         fi
 
