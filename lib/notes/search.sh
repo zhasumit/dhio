@@ -50,7 +50,7 @@ search_notes_fuzzy() {
                             local line_num=$(echo "$match_result" | cut -d: -f1)
                             local match_line=$(echo "$match_result" | cut -d: -f2-)
                             match_line=$(echo "$match_line" | awk -v term="$search_term" -v red="$RED" -v reset="$RESET" 'BEGIN{IGNORECASE=1}{gsub(term, red term reset); print}')
-                            match_lines+=("${DIM}[$line_num]${RESET}  $match_line")
+                            match_lines+=("${DIM}$line_num⟩${RESET} $match_line")
                         else
                             match_lines+=("")
                         fi

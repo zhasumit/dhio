@@ -72,6 +72,37 @@ highlight_search_term() {
     }'
 }
 
+# Strip ANSI sequences from input (returns plain text). Uses awk to remove common CSI sequences.
+strip_ansi() {
+    # Read from stdin
+    awk '{ gsub(/\x1b\[[0-9;]*[A-Za-z]/, ""); print }'
+}
+
+# Remove stray carriage returns and control characters except ANSI ESC sequences that start CSI
+strip_cr() {
+    awk '{ gsub(/\r/, ""); print }'
+}
+
+# Show a specific line (with its line number) from a file.
+# Usage: show_line <file> <linenumber> [context]
+show_line() {
+    local file="$1"
+    local lineno="$2"
+    local context="${3:-0}"
+    [ -z "$file" ] && return 1
+    [ ! -f "$file" ] && return 2
+    if ! [[ "$lineno" =~ ^[0-9]+$ ]]; then
+        echo "Invalid line number"
+        return 3
+    fi
+
+    local start=$(( lineno - context ))
+    [ $start -lt 1 ] && start=1
+    local end=$(( lineno + context ))
+
+    awk -v s=$start -v e=$end 'NR>=s && NR<=e { printf "%6d | %s\n", NR, $0 }' "$file" | strip_cr
+}
+
 # Compute a right-aligned date part for a heading line.
 # Usage: compute_date_part "<heading_part_with_ansi>" "<date_string>" [show_checkbox]
 # Prints the properly padded date (or a dimmed close date if not enough space).

@@ -153,47 +153,50 @@ show_statistics() {
         local total=$(get_total_notes)
         local archived=$(get_archived_count)
         local deleted=$(get_deleted_count)
-        local words=$(get_total_words)
+    local words=$(get_total_words)
         local chars=$(get_total_chars)
         local oldest=$(get_oldest_note_date)
         local newest=$(get_newest_note_date)
         
         # Summary
+        # Minimal summary (only the essential info)
         echo ""
         echo -e "  ${BOLD}Total Notes:${RESET}   ${GREEN}$(format_number $total)${RESET}"
         echo -e "  ${BOLD}Archived:${RESET}      ${MAGENTA}$(format_number $archived)${RESET}"
         echo -e "  ${BOLD}Deleted:${RESET}       ${RED}$(format_number $deleted)${RESET}"
-        echo -e "  ${BOLD}Total Words:${RESET}   ${GREEN}$(format_number $words)${RESET}"
         if [ $total -gt 0 ]; then
             local avg_words=$((words / total))
             echo -e "  ${BOLD}Avg Words/Note:${RESET} ${GREEN}$(format_number $avg_words)${RESET}"
         fi
         echo -e "  ${BOLD}Date Range:${RESET}   ${BLUE}$oldest${RESET} to ${BLUE}$newest${RESET}"
         echo ""
-        
-        # Tags table
+
+        # Tags: print count on the LEFT, tag on the right; only show top 5, then total unique tags
         local tags=$(get_all_tags)
         if [ -n "$tags" ]; then
-            echo -e "${CYAN}$(printf '%*s' $box_width '' | tr ' ' '-')${RESET}"
-            echo -e "  ${BOLD}Tags:${RESET}"
-            echo ""
-            
-            # Table header
-            printf "  %-25s %s\n" "Tag" "Count"
-            echo -e "${CYAN}  $(printf '%*s' $box_width '' | tr ' ' '-')${RESET}"
-            
-            # Tag rows
-            local tag_count=0
+            # Build a list of "count<TAB>tag"
+            local tmp_list
+            tmp_list=$(mktemp)
             while IFS= read -r tag; do
                 local count=$(get_notes_by_tag "${tag#@}")
-                printf "  %-25s ${GREEN}%s${RESET}\n" "${TAG_COLOR}$tag${RESET}" "$(format_number $count)"
-                ((tag_count++))
+                printf "%d\t%s\n" "$count" "$tag" >> "$tmp_list"
             done <<< "$tags"
-            
+
+            # Header: Count left, Tag right
+            echo -e "  ${BOLD}Tags:${RESET}"
+            printf "  %5s  %s\n" "Count" "Tag"
+            echo -e "  ${CYAN}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
+
+            # Print top 5 with count on left
+            sort -nr "$tmp_list" | head -n 5 | while IFS=$'\t' read -r cnt tg; do
+                printf "  ${GREEN}%5s${RESET}  %s\n" "$(format_number $cnt)" "${TAG_COLOR}$tg${RESET}"
+            done
+
+            local total_tags=$(wc -l < "$tmp_list" | tr -d ' ')
             echo ""
-            echo -e "  ${BOLD}Total Tags:${RESET} ${GREEN}$(format_number $tag_count)${RESET}"
+            echo -e "  ${BOLD}Total Tags Found:${RESET} ${GREEN}$(format_number $total_tags)${RESET}"
+            rm -f "$tmp_list"
         else
-            echo -e "${CYAN}$(printf '%*s' $box_width '' | tr ' ' '-')${RESET}"
             echo -e "  ${DIM}No tags found${RESET}"
         fi
         

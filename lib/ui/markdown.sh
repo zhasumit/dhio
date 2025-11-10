@@ -161,7 +161,8 @@ render_table() {
         local max_len=0
         for line in "${lines[@]}"; do
             IFS='|' read -ra cols <<< "$line"
-            local clean_col=$(echo "${cols[$i]}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed 's/\x1b\[[0-9;]*m//g')
+        # Trim and strip ANSI sequences (use awk to remove CSI sequences)
+        local clean_col=$(echo "${cols[$i]}" | awk '{ gsub(/^[ \t]+|[ \t]+$/, ""); gsub(/\x1b\[[0-9;]*m/, ""); print }')
             local len=${#clean_col}
             [ $len -gt $max_len ] && max_len=$len
         done
@@ -188,6 +189,8 @@ render_table() {
         for ((i=0; i<num_cols; i++)); do
             local col=$(echo "${cols[$i]}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             local formatted=$(process_inline "$col")
+            # Remove stray CR/control characters (keep ANSI escapes) before printing to avoid weird chars
+            formatted=$(echo -e "$formatted" | awk '{ gsub(/\r/, ""); print }')
             printf "%-*s" ${col_widths[$i]} "$formatted"
             [ $i -lt $((num_cols-1)) ] && echo -n " | "
         done
