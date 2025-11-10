@@ -207,7 +207,7 @@ sorting_menu() {
     
     while true; do
         clear
-        echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}"
+        echo -e "${BOLD}${CYAN}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
         echo -e "${BOLD}${CYAN}     SORT NOTES${RESET}"
         echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}\n"
         

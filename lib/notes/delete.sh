@@ -4,7 +4,7 @@
 delete_note_interactive() {
     local notes=("$@")
     clear
-    echo -e "${BOLD}${RED}═══════════════════════════════════════${RESET}"
+    echo -e "${BOLD}${RED}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
     echo -e "${BOLD}${RED}     Move to Bin${RESET}"
     echo -e "${BOLD}${RED}═══════════════════════════════════════${RESET}\n"
     echo -e "${YELLOW}Enter note number to delete:${RESET}\n"
@@ -13,7 +13,7 @@ delete_note_interactive() {
         local heading=$(head -n 1 "$note" | sed 's/^#* *//')
         local tags=$(extract_tags "$note")
         echo -e "    ${YELLOW}[$count]${RESET} ${BOLD}${heading}${RESET} ${DIM}$(date -r "$note" "+%Y-%m-%d %H:%M")${RESET}"
-        echo -e "      ${TAG_COLOR}🏷️  ${tags}${RESET}\n"
+        echo -e "      ${TAG_COLOR}🏷️ ${tags}${RESET}\n"
         ((count++))
     done
     draw_footer "delete"

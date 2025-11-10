@@ -53,7 +53,7 @@ render_note_list() {
         fi
         
         if [ -n "$tags" ]; then
-            echo -e "      ${TAG_COLOR}🏷️  ${tags}${RESET}"
+            echo -e "      ${TAG_COLOR}🏷️ ${tags}${RESET}"
         else
             echo ""
         fi
@@ -78,7 +78,7 @@ generic_delete() {
     
     while true; do
         clear
-        echo -e "${BOLD}${RED}═══════════════════════════════════════${RESET}"
+        echo -e "${BOLD}${RED}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
         echo -e "${BOLD}${RED}     $op_name${RESET}"
         echo -e "${BOLD}${RED}═══════════════════════════════════════${RESET}\n"
         
@@ -163,7 +163,7 @@ generic_restore() {
     
     while true; do
         clear
-        echo -e "${BOLD}${GREEN}═══════════════════════════════════════${RESET}"
+        echo -e "${BOLD}${GREEN}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
         echo -e "${BOLD}${GREEN}     RESTORE NOTES${RESET}"
         echo -e "${BOLD}${GREEN}═══════════════════════════════════════${RESET}\n"
         
@@ -254,7 +254,7 @@ generic_tag_search() {
     
     while true; do
         clear
-        echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}"
+        echo -e "${BOLD}${CYAN}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
         echo -e "${BOLD}${CYAN}     FILTER BY TAG${RESET}"
         echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}\n"
         echo -e "${BOLD}${CYAN}Search:${RESET} ${YELLOW}${search_term}${RESET}\n"
@@ -324,7 +324,7 @@ generic_search() {
     
     while true; do
         clear
-        echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}"
+        echo -e "${BOLD}${CYAN}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
         echo -e "${BOLD}${CYAN}     SEARCH NOTES${RESET}"
         echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}\n"
         echo -e "${BOLD}${CYAN}Search:${RESET} ${YELLOW}${search_term}${RESET}\n"
@@ -343,8 +343,15 @@ generic_search() {
                     filtered_notes+=("$note")
                     
                     if [ -n "$search_term" ]; then
-                        local match_line=$(grep -m 1 -i -- "$search_term" "$note" 2>/dev/null | head -c 80 || echo "")
-                        match_lines+=("$match_line")
+                        local match_result=$(grep -m 1 -n -i -- "$search_term" "$note" 2>/dev/null || echo "")
+                        if [ -n "$match_result" ]; then
+                            local line_num=$(echo "$match_result" | cut -d: -f1)
+                            local match_line=$(echo "$match_result" | cut -d: -f2- | head -c 80)
+                            match_line=$(echo "$match_line" | awk -v term="$search_term" -v red="$RED" -v reset="$RESET" 'BEGIN{IGNORECASE=1}{gsub(term, red term reset); print}')
+                            match_lines+=("${DIM}[$line_num]${RESET}  $match_line")
+                        else
+                            match_lines+=("")
+                        fi
                     else
                         match_lines+=("")
                     fi
@@ -369,17 +376,17 @@ generic_search() {
                 
                 if [ $i -eq $selected_index ]; then
                     echo -e "${BLUE}→${RESET}    ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET}"
-                    echo -e "      ${TAG_COLOR}🏷️  ${tags}${RESET}"
+                    echo -e "      ${TAG_COLOR}🏷️ ${tags}${RESET}"
                     if [ -n "${match_lines[$i]}" ]; then
-                        echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
+                        echo -e "      ${match_lines[$i]}\n"
                     else
                         echo ""
                     fi
                 else
                     echo -e "     ${YELLOW}[$((i+1))]${RESET} ${BOLD}${heading}${RESET} ${DIM}${date}${RESET}"
-                    echo -e "      ${TAG_COLOR}🏷️  ${tags}${RESET}"
+                    echo -e "      ${TAG_COLOR}🏷️ ${tags}${RESET}"
                     if [ -n "${match_lines[$i]}" ]; then
-                        echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
+                        echo -e "      ${match_lines[$i]}\n"
                     else
                         echo ""
                     fi

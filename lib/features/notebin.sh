@@ -9,7 +9,7 @@ search_deleted_notes() {
 
     while true; do
         clear
-        echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}"
+        echo -e "${BOLD}${CYAN}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
         echo -e "${BOLD}${CYAN}     SEARCH NOTEBIN${RESET}"
         echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}\n"
         echo -e "${BOLD}${CYAN}Search:${RESET} ${YELLOW}${search_term}${RESET}\n"
@@ -28,10 +28,12 @@ search_deleted_notes() {
                     filtered_notes+=("$note")
 
                     if [ -n "$search_term" ]; then
-                        local match_line=$(grep -m 1 -i -- "$search_term" "$note" 2>/dev/null || echo "")
-                        if [ -n "$match_line" ]; then
-                            match_line=$(echo "$match_line" | sed "s/$search_term/${RED}&${RESET}/gi")
-                            match_lines+=("$match_line")
+                        local match_result=$(grep -m 1 -n -i -- "$search_term" "$note" 2>/dev/null || echo "")
+                        if [ -n "$match_result" ]; then
+                            local line_num=$(echo "$match_result" | cut -d: -f1)
+                            local match_line=$(echo "$match_result" | cut -d: -f2-)
+                            match_line=$(echo "$match_line" | awk -v term="$search_term" -v red="$RED" -v reset="$RESET" 'BEGIN{IGNORECASE=1}{gsub(term, red term reset); print}')
+                            match_lines+=("${DIM}[$line_num]${RESET}  $match_line")
                         else
                             match_lines+=("")
                         fi
@@ -54,7 +56,7 @@ search_deleted_notes() {
                 local tags=$(extract_tags "$note")
 
                 if [ -n "$search_term" ]; then
-                    heading=$(echo "$heading" | sed "s/$search_term/${RED}&${RESET}/gi")
+                    heading=$(echo "$heading" | awk -v term="$search_term" -v red="$RED" -v reset="$RESET" 'BEGIN{IGNORECASE=1}{gsub(term, red term reset); print}')
                 fi
 
                 local term_width=$(tput cols)
@@ -81,7 +83,7 @@ search_deleted_notes() {
                 fi
 
                 if [ -n "${match_lines[$i]}" ]; then
-                    echo -e "    ${DIM}┃${RESET} ${match_lines[$i]}\n"
+                    echo -e "      ${match_lines[$i]}\n"
                 else
                     echo ""
                 fi
@@ -199,7 +201,7 @@ notebin_menu() {
             fi
             
             if [ -n "$tags" ]; then
-                echo -e "      ${TAG_COLOR}🏷️  ${tags}${RESET}"
+                echo -e "      ${TAG_COLOR}🏷️ ${tags}${RESET}"
             fi
             echo ""
         done
@@ -273,7 +275,7 @@ notebin_menu() {
                     continue
                 fi
                 clear
-                echo -e "${RED}${BOLD}═══════════════════════════════════════${RESET}"
+                echo -e "${RED}${BOLD}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
                 echo -e "${RED}${BOLD}     PERMANENT DELETION${RESET}"
                 echo -e "${RED}${BOLD}═══════════════════════════════════════${RESET}\n"
                 echo -e "${RED}${BOLD}This will permanently delete ${delete_count} note(s)!${RESET}"

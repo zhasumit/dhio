@@ -178,7 +178,7 @@ export_menu() {
     
     while true; do
         clear
-        echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}"
+        echo -e "${BOLD}${CYAN}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
         echo -e "${BOLD}${CYAN}     EXPORT NOTE${RESET}"
         echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}\n"
         

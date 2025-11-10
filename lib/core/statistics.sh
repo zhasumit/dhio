@@ -135,7 +135,7 @@ format_number() {
     echo "$num" | awk '{printf "%'"'"'d\n", $0}'
 }
 
-# Show statistics menu with clean, minimal display
+# Show statistics menu with tables for tags
 show_statistics() {
     while true; do
         clear
@@ -143,12 +143,12 @@ show_statistics() {
         local box_width=$((term_width - 4))
         
         echo ""
-        echo -e "${CYAN}┌$(printf '%*s' $box_width '' | tr ' ' '─')┐${RESET}"
+        echo -e "${CYAN}$(printf '%*s' $box_width '' | tr ' ' '-')${RESET}"
         local title="📊 NOTE STATISTICS"
         local title_len=${#title}
         local title_padding=$(( (box_width - title_len) / 2 ))
-        echo -e "${CYAN}│${RESET}$(printf '%*s' $title_padding '')${BOLD}${YELLOW}${title}${RESET}$(printf '%*s' $((box_width - title_len - title_padding)) '')${CYAN}│${RESET}"
-        echo -e "${CYAN}├$(printf '%*s' $box_width '' | tr ' ' '─')┤${RESET}"
+        echo -e "$(printf '%*s' $title_padding '')${BOLD}${YELLOW}${title}${RESET}"
+        echo -e "${CYAN}$(printf '%*s' $box_width '' | tr ' ' '-')${RESET}"
         
         local total=$(get_total_notes)
         local archived=$(get_archived_count)
@@ -158,54 +158,47 @@ show_statistics() {
         local oldest=$(get_oldest_note_date)
         local newest=$(get_newest_note_date)
         
-        # Overview - clean and minimal
-        echo -e "${CYAN}│${RESET} ${BOLD}Overview:${RESET}"
-        echo -e "${CYAN}│${RESET}   ${CYAN}Total Notes:${RESET}   ${BOLD}${GREEN}$(format_number $total)${RESET}"
-        echo -e "${CYAN}│${RESET}   ${CYAN}Archived:${RESET}      ${BOLD}${MAGENTA}$(format_number $archived)${RESET}"
-        echo -e "${CYAN}│${RESET}   ${CYAN}Deleted:${RESET}       ${BOLD}${RED}$(format_number $deleted)${RESET}"
-        echo -e "${CYAN}│${RESET}"
-        echo -e "${CYAN}├$(printf '%*s' $box_width '' | tr ' ' '─')┤${RESET}"
-        
-        # Content stats
-        echo -e "${CYAN}│${RESET} ${BOLD}Content:${RESET}"
-        echo -e "${CYAN}│${RESET}   ${CYAN}Total Words:${RESET}   ${BOLD}${GREEN}$(format_number $words)${RESET}"
-        echo -e "${CYAN}│${RESET}   ${CYAN}Total Chars:${RESET}   ${BOLD}${GREEN}$(format_number $chars)${RESET}"
+        # Summary
+        echo ""
+        echo -e "  ${BOLD}Total Notes:${RESET}   ${GREEN}$(format_number $total)${RESET}"
+        echo -e "  ${BOLD}Archived:${RESET}      ${MAGENTA}$(format_number $archived)${RESET}"
+        echo -e "  ${BOLD}Deleted:${RESET}       ${RED}$(format_number $deleted)${RESET}"
+        echo -e "  ${BOLD}Total Words:${RESET}   ${GREEN}$(format_number $words)${RESET}"
         if [ $total -gt 0 ]; then
             local avg_words=$((words / total))
-            echo -e "${CYAN}│${RESET}   ${CYAN}Avg/Note:${RESET}     ${BOLD}${GREEN}$(format_number $avg_words)${RESET} words"
+            echo -e "  ${BOLD}Avg Words/Note:${RESET} ${GREEN}$(format_number $avg_words)${RESET}"
         fi
-        echo -e "${CYAN}│${RESET}"
-        echo -e "${CYAN}├$(printf '%*s' $box_width '' | tr ' ' '─')┤${RESET}"
+        echo -e "  ${BOLD}Date Range:${RESET}   ${BLUE}$oldest${RESET} to ${BLUE}$newest${RESET}"
+        echo ""
         
-        # Date range
-        echo -e "${CYAN}│${RESET} ${BOLD}Date Range:${RESET}"
-        echo -e "${CYAN}│${RESET}   ${CYAN}Oldest:${RESET}        ${BOLD}${BLUE}$oldest${RESET}"
-        echo -e "${CYAN}│${RESET}   ${CYAN}Newest:${RESET}        ${BOLD}${BLUE}$newest${RESET}"
-        echo -e "${CYAN}│${RESET}"
-        echo -e "${CYAN}├$(printf '%*s' $box_width '' | tr ' ' '─')┤${RESET}"
-        
-        # Tags - minimal preview
-        echo -e "${CYAN}│${RESET} ${BOLD}Tags:${RESET}"
+        # Tags table
         local tags=$(get_all_tags)
         if [ -n "$tags" ]; then
+            echo -e "${CYAN}$(printf '%*s' $box_width '' | tr ' ' '-')${RESET}"
+            echo -e "  ${BOLD}Tags:${RESET}"
+            echo ""
+            
+            # Table header
+            printf "  %-25s %s\n" "Tag" "Count"
+            echo -e "${CYAN}  $(printf '%*s' $box_width '' | tr ' ' '-')${RESET}"
+            
+            # Tag rows
             local tag_count=0
-            local preview_count=0
-            while IFS= read -r tag && [ $preview_count -lt 5 ]; do
+            while IFS= read -r tag; do
                 local count=$(get_notes_by_tag "${tag#@}")
-                echo -e "${CYAN}│${RESET}   ${TAG_COLOR}$tag${RESET} ${BOLD}${GREEN}$(format_number $count)${RESET}"
+                printf "  %-25s ${GREEN}%s${RESET}\n" "${TAG_COLOR}$tag${RESET}" "$(format_number $count)"
                 ((tag_count++))
-                ((preview_count++))
             done <<< "$tags"
-            if [ $tag_count -gt 5 ]; then
-                local remaining=$((tag_count - 5))
-                echo -e "${CYAN}│${RESET}   ${DIM}... and $remaining more${RESET}"
-            fi
-            echo -e "${CYAN}│${RESET}   ${CYAN}Total:${RESET} ${BOLD}${GREEN}$(format_number $tag_count)${RESET} unique tags"
+            
+            echo ""
+            echo -e "  ${BOLD}Total Tags:${RESET} ${GREEN}$(format_number $tag_count)${RESET}"
         else
-            echo -e "${CYAN}│${RESET}   ${DIM}No tags found${RESET}"
+            echo -e "${CYAN}$(printf '%*s' $box_width '' | tr ' ' '-')${RESET}"
+            echo -e "  ${DIM}No tags found${RESET}"
         fi
         
-        echo -e "${CYAN}└$(printf '%*s' $box_width '' | tr ' ' '─')┘${RESET}"
+        echo ""
+        echo -e "${CYAN}$(printf '%*s' $box_width '' | tr ' ' '-')${RESET}"
         echo ""
         echo -e "${PURPLE}[ESC]${RESET} Back"
         

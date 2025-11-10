@@ -3,7 +3,7 @@
 
 create_note() {
     clear
-    echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}"
+    echo -e "${BOLD}${CYAN}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
     echo -e "${BOLD}${CYAN}     CREATE NEW NOTE${RESET}"
     echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}\n"
     echo -e "${YELLOW}Enter note heading:${RESET}"

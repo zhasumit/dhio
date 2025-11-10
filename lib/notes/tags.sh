@@ -26,7 +26,7 @@ tag_search() {
 
     while true; do
         clear
-        echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}"
+        echo -e "${BOLD}${CYAN}$(printf '%*s' 40 '' | tr ' ' '-')${RESET}"
         echo -e "${BOLD}${CYAN}     FILTER BY TAG${RESET}"
         echo -e "${BOLD}${CYAN}═══════════════════════════════════════${RESET}\n"
         echo -e "${BOLD}${CYAN}Search:${RESET} ${YELLOW}${search_term}${RESET}\n"
@@ -105,7 +105,7 @@ tag_search() {
                 fi
                 
                 if [ -n "$display_tags" ]; then
-                    echo -e "      ${TAG_COLOR}🏷️  ${display_tags}${RESET}"
+                    echo -e "      ${TAG_COLOR}🏷️ ${display_tags}${RESET}"
                 fi
                 echo ""
             done

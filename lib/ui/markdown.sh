@@ -144,6 +144,8 @@ render_table() {
         return
     fi
     
+    local term_width=$(tput cols)
+    
     # Parse header
     local header="${lines[0]}"
     local separator="${lines[1]}"
@@ -166,51 +168,34 @@ render_table() {
         col_widths+=($max_len)
     done
     
-    # Print table with better formatting
-    echo -e "${CYAN}┌"
-    for ((i=0; i<num_cols; i++)); do
-        printf "%*s" ${col_widths[$i]} "" | tr ' ' '─'
-        [ $i -lt $((num_cols-1)) ] && echo -n "┬"
-    done
-    echo -e "┐${RESET}"
+    # Print table with simple formatting using dashes
+    echo -e "${CYAN}$(printf '%*s' $((term_width - 4)) '' | tr ' ' '-')${RESET}"
     
     # Header
-    echo -e "${CYAN}│${RESET}"
     for ((i=0; i<num_cols; i++)); do
         local col=$(echo "${header_cols[$i]}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
         printf "${BOLD}%-*s${RESET}" ${col_widths[$i]} "$col"
-        [ $i -lt $((num_cols-1)) ] && echo -n "${CYAN}│${RESET}"
+        [ $i -lt $((num_cols-1)) ] && echo -n " | "
     done
-    echo -e "${CYAN}│${RESET}"
+    echo ""
     
     # Separator
-    echo -e "${CYAN}├"
-    for ((i=0; i<num_cols; i++)); do
-        printf "%*s" ${col_widths[$i]} "" | tr ' ' '─'
-        [ $i -lt $((num_cols-1)) ] && echo -n "┼"
-    done
-    echo -e "┤${RESET}"
+    echo -e "${CYAN}$(printf '%*s' $((term_width - 4)) '' | tr ' ' '-')${RESET}"
     
     # Data rows
     for line in "${data_lines[@]}"; do
         IFS='|' read -ra cols <<< "$line"
-        echo -e "${CYAN}│${RESET}"
         for ((i=0; i<num_cols; i++)); do
             local col=$(echo "${cols[$i]}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             local formatted=$(process_inline "$col")
             printf "%-*s" ${col_widths[$i]} "$formatted"
-            [ $i -lt $((num_cols-1)) ] && echo -n "${CYAN}│${RESET}"
+            [ $i -lt $((num_cols-1)) ] && echo -n " | "
         done
-        echo -e "${CYAN}│${RESET}"
+        echo ""
     done
     
     # Footer
-    echo -e "${CYAN}└"
-    for ((i=0; i<num_cols; i++)); do
-        printf "%*s" ${col_widths[$i]} "" | tr ' ' '─'
-        [ $i -lt $((num_cols-1)) ] && echo -n "┴"
-    done
-    echo -e "┘${RESET}"
+    echo -e "${CYAN}$(printf '%*s' $((term_width - 4)) '' | tr ' ' '-')${RESET}"
 }
 
 # Render markdown to terminal with cleaner formatting
@@ -227,7 +212,7 @@ render_markdown() {
     local border_width=$((term_width - 4))
     
     echo ""
-    echo -e "${CYAN}┌$(printf '%*s' $border_width '' | tr ' ' '─')┐${RESET}"
+    echo -e "${CYAN}$(printf '%*s' $border_width '' | tr ' ' '-')${RESET}"
     
     while IFS= read -r line; do
         # Code blocks
@@ -237,10 +222,10 @@ render_markdown() {
                 code_lang="${BASH_REMATCH[1]}"
                 code_content=""
                 ((code_block_num++))
-                echo -e "${CYAN}│${RESET} ${PURPLE}┌─ Code${code_lang:+ ($code_lang)} ─$(printf '%*s' $((border_width-15-${#code_lang})) '' | tr ' ' '─')┐${RESET} ${CYAN}│${RESET}"
+                echo -e "${CYAN}--- Code${code_lang:+ ($code_lang)} ---${RESET}"
             else
                 in_code_block=false
-                echo -e "${CYAN}│${RESET} ${PURPLE}└$(printf '%*s' $((border_width-2)) '' | tr ' ' '─')┘${RESET} ${CYAN}│${RESET}"
+                echo -e "${CYAN}---${RESET}"
                 echo -n "$code_content" > "$NOTES_DIR/.code_block_${code_block_num}"
             fi
             continue
@@ -250,12 +235,12 @@ render_markdown() {
             code_content="${code_content}${line}"$'\n'
             if command -v bat &> /dev/null && [ -n "$code_lang" ]; then
                 local highlighted=$(echo "$line" | bat --language="$code_lang" --style=plain --color=always --wrap=never 2>/dev/null || echo "$line")
-                echo -e "${CYAN}│${RESET} ${PURPLE}│${RESET} ${GREEN}${highlighted}${RESET} ${PURPLE}│${RESET} ${CYAN}│${RESET}"
+                echo -e "  ${GREEN}${highlighted}${RESET}"
             elif command -v pygmentize &> /dev/null && [ -n "$code_lang" ]; then
                 local highlighted=$(echo "$line" | pygmentize -l "$code_lang" -f terminal 2>/dev/null || echo "$line")
-                echo -e "${CYAN}│${RESET} ${PURPLE}│${RESET} ${GREEN}${highlighted}${RESET} ${PURPLE}│${RESET} ${CYAN}│${RESET}"
+                echo -e "  ${GREEN}${highlighted}${RESET}"
             else
-                echo -e "${CYAN}│${RESET} ${PURPLE}│${RESET} ${GREEN}${line}${RESET} ${PURPLE}│${RESET} ${CYAN}│${RESET}"
+                echo -e "  ${GREEN}${line}${RESET}"
             fi
             continue
         fi
@@ -282,9 +267,9 @@ render_markdown() {
             local todo_text="${BASH_REMATCH[2]}"
             local formatted_todo=$(process_inline "$todo_text")
             if [[ "$checkbox" =~ [xX] ]]; then
-                echo -e "${CYAN}│${RESET}   ${GREEN}✓${RESET} ${STRIKETHROUGH}${DIM}$formatted_todo${RESET} ${CYAN}│${RESET}"
+                echo -e "  ${GREEN}[x]${RESET} ${DIM}$formatted_todo${RESET}"
             else
-                echo -e "${CYAN}│${RESET}   ${GRAY}☐${RESET}  $formatted_todo ${CYAN}│${RESET}"
+                echo -e "  ${GRAY}[ ]${RESET} $formatted_todo"
             fi
             continue
         fi
@@ -293,60 +278,60 @@ render_markdown() {
         if [[ "$line" =~ ^######[[:space:]](.+)$ ]]; then
             local content="${BASH_REMATCH[1]}"
             local formatted=$(process_inline "$content")
-            echo -e "${CYAN}│${RESET}   ${MAGENTA}${formatted}${RESET} ${CYAN}│${RESET}"
+            echo -e "  ${MAGENTA}${formatted}${RESET}"
         elif [[ "$line" =~ ^#####[[:space:]](.+)$ ]]; then
             local content="${BASH_REMATCH[1]}"
             local formatted=$(process_inline "$content")
-            echo -e "${CYAN}│${RESET}   ${MAGENTA}${BOLD}• ${formatted}${RESET} ${CYAN}│${RESET}"
+            echo -e "  ${MAGENTA}${BOLD}${formatted}${RESET}"
         elif [[ "$line" =~ ^####[[:space:]](.+)$ ]]; then
             local content="${BASH_REMATCH[1]}"
             local formatted=$(process_inline "$content")
-            echo -e "${CYAN}│${RESET}   ${BLUE}▸ ${formatted}${RESET} ${CYAN}│${RESET}"
+            echo -e "  ${BLUE}${formatted}${RESET}"
         elif [[ "$line" =~ ^###[[:space:]](.+)$ ]]; then
             local content="${BASH_REMATCH[1]}"
             local formatted=$(process_inline "$content")
-            echo -e "${CYAN}│${RESET}   ${BLUE}${BOLD}═══ ${formatted} ═══${RESET} ${CYAN}│${RESET}"
+            echo -e "  ${BLUE}${BOLD}${formatted}${RESET}"
         elif [[ "$line" =~ ^##[[:space:]](.+)$ ]]; then
             local content="${BASH_REMATCH[1]}"
             local formatted=$(process_inline "$content")
-            echo -e "${CYAN}│${RESET}   ${CYAN}${BOLD}▋▋ ${formatted} ▋▋${RESET} ${CYAN}│${RESET}"
+            echo -e "  ${CYAN}${BOLD}${formatted}${RESET}"
         elif [[ "$line" =~ ^#[[:space:]](.+)$ ]]; then
             local content="${BASH_REMATCH[1]}"
             local formatted=$(process_inline "$content")
-            echo -e "${CYAN}│${RESET}   ${WHITE}${BOLD}█ ${formatted} █${RESET} ${CYAN}│${RESET}"
+            echo -e "  ${WHITE}${BOLD}${formatted}${RESET}"
         # Horizontal rules
         elif [[ "$line" =~ ^(---|\*\*\*|___)$ ]]; then
-            echo -e "${CYAN}│${RESET}   ${DIM}$(printf '%*s' $((border_width-6)) '' | tr ' ' '─')${RESET} ${CYAN}│${RESET}"
+            echo -e "${CYAN}$(printf '%*s' $((border_width)) '' | tr ' ' '-')${RESET}"
         # Lists
         elif [[ "$line" =~ ^[[:space:]]*[-*+][[:space:]](.+)$ ]]; then
             local content="${BASH_REMATCH[1]}"
             local formatted=$(process_inline "$content")
-            echo -e "${CYAN}│${RESET}   ${YELLOW}•${RESET} $formatted ${CYAN}│${RESET}"
+            echo -e "  ${YELLOW}-${RESET} $formatted"
         elif [[ "$line" =~ ^[[:space:]]*[0-9]+\.[[:space:]](.+)$ ]]; then
             local content="${BASH_REMATCH[1]}"
             local formatted=$(process_inline "$content")
-            echo -e "${CYAN}│${RESET}   ${YELLOW}▸${RESET} $formatted ${CYAN}│${RESET}"
+            echo -e "  ${YELLOW}${formatted}${RESET}"
         # Blockquotes
         elif [[ "$line" =~ ^\>[[:space:]](.+)$ ]]; then
             local content="${BASH_REMATCH[1]}"
             local formatted=$(process_inline "$content")
-            echo -e "${CYAN}│${RESET}   ${DIM}┃${RESET} ${formatted} ${CYAN}│${RESET}"
+            echo -e "  ${DIM}>${RESET} ${formatted}"
         # Images
         elif [[ "$line" =~ ^\!\[.*\]\(.*\) ]]; then
             local alt=$(echo "$line" | sed -n 's/^!\[\([^\]]*\)\].*/\1/p')
             local url=$(echo "$line" | sed -n 's/^!\[[^\]]*\](\([^)]*\))/\1/p')
-            echo -e "${CYAN}│${RESET}   ${CYAN}[Image: ${alt}]${RESET} ${DIM}(${url})${RESET} ${CYAN}│${RESET}"
+            echo -e "  ${CYAN}[Image: ${alt}]${RESET} ${DIM}(${url})${RESET}"
         # Regular text
         else
             if [ -n "$line" ]; then
                 local formatted=$(process_inline "$line")
-                echo -e "${CYAN}│${RESET}   $formatted ${CYAN}│${RESET}"
+                echo -e "  $formatted"
             else
-                echo -e "${CYAN}│${RESET} ${CYAN}│${RESET}"
+                echo ""
             fi
         fi
     done <<< "$content"
     
-    echo -e "${CYAN}└$(printf '%*s' $border_width '' | tr ' ' '─')┘${RESET}"
+    echo -e "${CYAN}$(printf '%*s' $border_width '' | tr ' ' '-')${RESET}"
     echo ""
 }

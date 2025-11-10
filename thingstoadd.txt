@@ -18,11 +18,6 @@
 	- Why: Saves time and ensures consistent note structure.
 
 
-5. Daily Notes
-	- What: Auto-create daily notes (e.g., 2025-11-05.md) with a template.
-	- Why: Great for journals, daily logs, or standup notes.
-
-
 6. Note Encryption
 	- What: Encrypt sensitive notes using gpg or openssl.
 	- Why: Secure private or confidential notes.
@@ -72,10 +67,6 @@
 	- What: Show stats like total notes, notes by tag, etc.
 	- Why: Helps users track productivity or usage.
 
-
-16. Multi-Select in Main Menu
-	- What: Select multiple notes in the main menu (like Notebin/Archive).
-	- Why: Batch actions (e.g., archive/delete multiple notes).
 
 
 17. Note Sharing (Export to PDF/HTML)

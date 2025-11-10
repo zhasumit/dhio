@@ -264,19 +264,6 @@ cli_stats() {
     echo "Total Words: $words"
 }
 
-# CLI: Theme
-cli_theme() {
-    local theme_name="$1"
-    
-    if [ -z "$theme_name" ]; then
-        echo "Current theme: $(cat "$THEME_CONFIG" 2>/dev/null || echo 'tokyo-night')"
-        echo "Available themes: $(get_available_themes | head -n 5 | tr '\n' ' ')"
-        return
-    fi
-    
-    load_theme "$theme_name"
-    echo "Theme changed to: $theme_name"
-}
 
 # CLI: Encrypt
 cli_encrypt() {
@@ -350,7 +337,6 @@ handle_cli() {
         template) shift; cli_template "$@" ;;
         daily) cli_daily ;;
         stats) cli_stats ;;
-        theme) shift; cli_theme "$@" ;;
         encrypt) shift; cli_encrypt "$@" ;;
         decrypt) shift; cli_decrypt "$@" ;;
         history) shift; cli_history "$@" ;;

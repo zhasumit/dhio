@@ -76,7 +76,7 @@ list_notes() {
             
             # Tags with better spacing
             if [ -n "$tags" ]; then
-                echo -e "      ${TAG_COLOR}🏷️  ${tags}${RESET}"
+                echo -e "      ${TAG_COLOR}🏷️ ${tags}${RESET}"
             fi
             echo ""
         done
@@ -126,7 +126,7 @@ list_notes() {
                         fi
                         
                         if [ -n "$tags" ]; then
-                            echo -e "      ${TAG_COLOR}🏷️  ${tags}${RESET}"
+                            echo -e "      ${TAG_COLOR}🏷️ ${tags}${RESET}"
                         fi
                         echo ""
                     done
@@ -173,7 +173,6 @@ list_notes() {
             s|S) sorting_menu; return ;;
             m|M) template_menu; return ;;
             i|I) show_statistics; return ;;
-            c|C) theme_menu; return ;;
             /) search_notes_fuzzy "${note_array[@]}"; return ;;
             esc) exit 0 ;;
             up)
