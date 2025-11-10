@@ -19,6 +19,11 @@ source "$(dirname "$0")/lib/ui/markdown.sh"
 # Source core functionality
 source "$(dirname "$0")/lib/core/operations.sh"
 source "$(dirname "$0")/lib/core/encryption.sh"
+# Prompt for simple encryption setup if needed (non-intrusive)
+if command -v openssl &> /dev/null; then
+    # try to prompt user to create default keypair if none exists
+    ensure_default_user_key || true
+fi
 source "$(dirname "$0")/lib/core/history.sh"
 source "$(dirname "$0")/lib/core/export_import.sh"
 source "$(dirname "$0")/lib/core/templates.sh"

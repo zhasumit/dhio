@@ -1,5 +1,15 @@
 #!/bin/bash
-# Note statistics module with improved display
+# Note statistics module
+#
+# Purpose:
+# - Compute and display a concise summary of the notes collection (total, archived, deleted,
+#   average words per note, and date range).
+# - Provide a compact tags summary showing the top tags and counts.
+#
+# Public functions:
+# - show_statistics: interactive menu entry that prints the summary and tags
+# - get_total_notes, get_archived_count, get_deleted_count: small helpers used elsewhere
+
 
 # Get total note count
 get_total_notes() {

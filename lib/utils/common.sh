@@ -1,5 +1,18 @@
 #!/bin/bash
 # Common utility functions for Dhio Notes App
+#
+# Purpose:
+# - Provide small shared helpers used across the app (I/O helpers, key reading, highlighting,
+#   simple text sanitizers, and convenience functions used by scripts and the UI).
+#
+# Public functions (examples):
+# - init_notes_dir: create notes directories used by the app
+# - get_key: read a single key from the terminal (arrow keys, esc detection)
+# - copy_code_block: copy small text to clipboard (xclip/xsel/pbcopy fallback)
+# - highlight_search_term: highlight occurrences of a search term in a string using awk
+# - strip_ansi / strip_cr: small filters to remove ANSI sequences or stray CR characters
+# - show_line <file> <linenumber> [context]: print a specific line with optional nearby context
+
 
 # Initialize notes directory
 init_notes_dir() {

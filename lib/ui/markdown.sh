@@ -1,5 +1,17 @@
 #!/bin/bash
-# Enhanced Markdown rendering for Dhio Notes App
+# Markdown rendering for Dhio Notes App
+#
+# Responsible for turning note Markdown into terminal-friendly output. This module contains:
+# - process_inline: perform inline formatting (bold, italic, code spans, tags, links)
+# - render_table: simple table rendering with column width measurement that strips ANSI codes
+# - render_markdown: top-level renderer that handles headings, lists, blockquotes, code blocks,
+#   tables, images and checkboxes and prints to stdout.
+#
+# Notes for maintainers:
+# - The renderer is intentionally simple and line-oriented to stay fast and shell-friendly.
+# - When measuring visible width for tables, ANSI color sequences are stripped to avoid
+#   miscalculated widths.
+
 
 # Process inline markdown formatting with tag support
 process_inline() {
