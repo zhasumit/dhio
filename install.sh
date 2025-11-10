@@ -3,6 +3,8 @@
 # Usage: run this from the repo root: ./install.sh
 # Or via curl (less recommended):
 #   curl -sSL https://raw.githubusercontent.com/zhasumit/dhio/main/install.sh | bash
+# Or via wget (if curl is not available):
+#   wget -qO- https://raw.githubusercontent.com/zhasumit/dhio/main/install.sh | bash
 
 set -e
 
@@ -61,11 +63,24 @@ if [ ! -f "$DHIO_SCRIPT" ]; then
     tmpdir=$(mktemp -d)
     echo "Downloading repository archive..."
     tarball_path="$tmpdir/repo.tar.gz"
-    if ! curl -sSL "$TARBALL_URL" -o "$tarball_path"; then
-      echo "Failed to download repository archive from $TARBALL_URL" >&2
-      rm -rf "$tmpdir"
-      exit 1
-    fi
+        # downloader: prefer curl, fall back to wget with compatible flags
+        download_to_file() {
+          local url="$1" out="$2"
+          if command -v curl >/dev/null 2>&1; then
+            curl -fsSL "$url" -o "$out"
+          elif command -v wget >/dev/null 2>&1; then
+            wget -qO "$out" "$url"
+          else
+            echo "Error: neither 'curl' nor 'wget' is available. Install one and retry." >&2
+            return 2
+          fi
+        }
+
+        if ! download_to_file "$TARBALL_URL" "$tarball_path"; then
+          echo "Failed to download repository archive from $TARBALL_URL" >&2
+          rm -rf "$tmpdir"
+          exit 1
+        fi
     # Optional GPG verification (if both pubkey and sig URLs provided)
     if [ -n "$GPG_PUBKEY_URL" ] && [ -n "$GPG_SIG_URL" ]; then
       if ! command -v gpg >/dev/null 2>&1; then
@@ -76,12 +91,12 @@ if [ ! -f "$DHIO_SCRIPT" ]; then
       echo "Downloading GPG public key and signature..."
       pubkey_path="$tmpdir/pubkey.asc"
       sig_path="$tmpdir/sig.asc"
-      if ! curl -sSL "$GPG_PUBKEY_URL" -o "$pubkey_path"; then
+      if ! download_to_file "$GPG_PUBKEY_URL" "$pubkey_path"; then
         echo "Failed to download GPG public key from $GPG_PUBKEY_URL" >&2
         rm -rf "$tmpdir"
         exit 1
       fi
-      if ! curl -sSL "$GPG_SIG_URL" -o "$sig_path"; then
+      if ! download_to_file "$GPG_SIG_URL" "$sig_path"; then
         echo "Failed to download signature from $GPG_SIG_URL" >&2
         rm -rf "$tmpdir"
         exit 1
