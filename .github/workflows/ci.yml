@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      tarball_url:
+        description: 'Optional tarball URL to verify'
+        required: false
+      sha256:
+        description: 'Optional expected SHA256 hex for tarball'
+        required: false
+      gpg_sig_url:
+        description: 'Optional URL to detached GPG signature (.asc)'
+        required: false
+      gpg_pubkey_url:
+        description: 'Optional URL to project GPG public key (ASCII-armored)'
+        required: false
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends shellcheck openssl gnupg wget
+
+      - name: Shellcheck (quick lint)
+        run: |
+          find . -name '*.sh' -not -path './.git/*' -print0 | xargs -0 shellcheck || true
+
+      - name: Run tests
+        run: |
+          chmod +x tests/run_all.sh tests/test_encryption.sh || true
+          ./tests/run_all.sh
+
+  verify-release:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify environment inputs
+        run: |
+          echo "tarball_url=${{ github.event.inputs.tarball_url }}" > params.txt
+          echo "sha256=${{ github.event.inputs.sha256 }}" >> params.txt
+          echo "gpg_sig_url=${{ github.event.inputs.gpg_sig_url }}" >> params.txt
+          echo "gpg_pubkey_url=${{ github.event.inputs.gpg_pubkey_url }}" >> params.txt
+          cat params.txt
+
+      - name: Download tarball
+        if: ${{ github.event.inputs.tarball_url != '' }}
+        run: |
+          set -e
+          URL="${{ github.event.inputs.tarball_url }}"
+          out=$(basename "$URL")
+          wget -q -O "$out" "$URL"
+          ls -l "$out"
+
+      - name: Verify SHA256
+        if: ${{ github.event.inputs.sha256 != '' && github.event.inputs.tarball_url != '' }}
+        run: |
+          expected="${{ github.event.inputs.sha256 }}"
+          URL="${{ github.event.inputs.tarball_url }}"
+          out=$(basename "$URL")
+          calc=$(sha256sum "$out" | awk '{print $1}')
+          echo "expected=$expected"; echo "calc=$calc"
+          if [ "$calc" != "$expected" ]; then
+            echo "SHA256 mismatch" >&2
+            exit 1
+          fi
+          echo "SHA256 verified"
+
+      - name: Verify GPG signature (optional)
+        if: ${{ github.event.inputs.gpg_sig_url != '' && github.event.inputs.gpg_pubkey_url != '' && github.event.inputs.tarball_url != '' }}
+        run: |
+          set -e
+          sig_url="${{ github.event.inputs.gpg_sig_url }}"
+          pubkey_url="${{ github.event.inputs.gpg_pubkey_url }}"
+          tarball_url="${{ github.event.inputs.tarball_url }}"
+          tarball=$(basename "$tarball_url")
+          wget -q -O pubkey.asc "$pubkey_url"
+          wget -q -O sig.asc "$sig_url"
+          gpg --import pubkey.asc
+          gpg --verify sig.asc "$tarball"
+          echo "GPG signature verified"

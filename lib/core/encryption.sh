@@ -32,6 +32,18 @@ ensure_key_dir() {
     chmod 700 "$KEY_DIR" 2>/dev/null || true
 }
 
+# Create a secure temporary file containing a passphrase.
+# The file is created with mode 600 and the path is echoed. Caller MUST remove the file when done.
+secure_tmp_passfile() {
+    local pass="$1"
+    local pf
+    pf=$(mktemp) || return 1
+    umask 077
+    printf "%s" "$pass" > "$pf"
+    chmod 600 "$pf" 2>/dev/null || true
+    echo "$pf"
+}
+
 # Return private/public key path for username
 key_paths() {
     local user="$1"
@@ -76,17 +88,23 @@ ensure_keypair() {
     done
 
     # Generate RSA private key encrypted with passphrase
-    if ! openssl genpkey -algorithm RSA -out "$priv" -pkeyopt rsa_keygen_bits:2048 -aes-256-cbc -pass pass:"$pass" 2>/dev/null; then
+    # Use a temporary passfile to avoid exposing passphrases in process argv.
+    local pf
+    pf=$(secure_tmp_passfile "$pass") || { echo -e "${RED}Failed to create secure temp file${RESET}"; return 1; }
+    if ! openssl genpkey -algorithm RSA -out "$priv" -pkeyopt rsa_keygen_bits:2048 -aes-256-cbc -pass file:"$pf" 2>/dev/null; then
         echo -e "${RED}Failed to generate RSA keypair${RESET}"
+        rm -f "$pf"
         return 1
     fi
 
     # Extract public key
-    if ! openssl rsa -in "$priv" -passin pass:"$pass" -pubout -out "$pub" 2>/dev/null; then
+    if ! openssl rsa -in "$priv" -passin file:"$pf" -pubout -out "$pub" 2>/dev/null; then
         echo -e "${RED}Failed to extract public key${RESET}"
         rm -f "$priv"
+        rm -f "$pf"
         return 1
     fi
+    rm -f "$pf"
 
     chmod 600 "$priv" 2>/dev/null || true
     chmod 644 "$pub" 2>/dev/null || true
@@ -134,8 +152,9 @@ encrypt_note_rsa() {
     local enc_file="${filepath}.enc"
     local key_file="${filepath}.key"
 
-    # Encrypt file symmetrically with generated key
-    if ! openssl enc -aes-256-cbc -salt -pbkdf2 -in "$filepath" -out "$enc_file" -pass pass:"$symkey" 2>/dev/null; then
+    # Encrypt file symmetrically with generated key.
+    # Use -pass stdin and pipe the symmetric key on stdin to avoid exposing it in process args.
+    if ! printf "%s" "$symkey" | openssl enc -aes-256-cbc -salt -pbkdf2 -in "$filepath" -out "$enc_file" -pass stdin 2>/dev/null; then
         send_notification "Notes App" "Encryption failed: symmetric step"
         return 1
     fi
@@ -158,6 +177,7 @@ decrypt_note_rsa() {
     local enc_file="$1"
     local user="$2"
     local out_path="${enc_file%.enc}"
+    local provided_pass="$3"
 
     if [ ! -f "$enc_file" ]; then
         send_notification "Notes App" "Encrypted note not found"
@@ -186,24 +206,34 @@ decrypt_note_rsa() {
         return 1
     fi
 
-    # Ask for passphrase to unlock private key
-    echo -e "${YELLOW}Enter passphrase for private key:${RESET}"
-    read -rs pass
-    echo ""
+    # Determine passphrase (optional third arg for non-interactive use)
+    local pass="${provided_pass:-}"
+    if [ -z "$pass" ]; then
+        echo -e "${YELLOW}Enter passphrase for private key:${RESET}"
+        read -rs pass
+        echo ""
+    fi
     if [ -z "$pass" ]; then
         send_notification "Notes App" "Decryption cancelled"
         return 1
     fi
 
-    # Decrypt symmetric key
+    # Use a temporary passfile to avoid exposing the passphrase in process listings
+    local pf
+    pf=$(secure_tmp_passfile "$pass") || { send_notification "Notes App" "Failed to create secure passfile"; return 1; }
+
+    # Decrypt symmetric key using private key and passfile
     local symkey
-    if ! symkey=$(openssl rsautl -decrypt -inkey "$priv" -passin pass:"$pass" -in "$key_file" 2>/dev/null); then
+    if ! symkey=$(openssl rsautl -decrypt -inkey "$priv" -passin file:"$pf" -in "$key_file" 2>/dev/null); then
+        rm -f "$pf"
         send_notification "Notes App" "Failed to decrypt symmetric key (wrong passphrase?)"
         return 1
     fi
+    rm -f "$pf"
 
     local temp_out="${enc_file}.dec.tmp"
-    if ! openssl enc -aes-256-cbc -d -pbkdf2 -in "$enc_file" -out "$temp_out" -pass pass:"$symkey" 2>/dev/null; then
+    # Decrypt data using symmetric key provided on stdin to avoid exposure
+    if ! printf "%s" "$symkey" | openssl enc -aes-256-cbc -d -pbkdf2 -in "$enc_file" -out "$temp_out" -pass stdin 2>/dev/null; then
         rm -f "$temp_out"
         send_notification "Notes App" "Failed to decrypt data (wrong key?)"
         return 1
@@ -309,16 +339,53 @@ ensure_default_user_key() {
     done
 
     # create keypair non-interactively using provided passphrase
-    if openssl genpkey -algorithm RSA -out "$KEY_DIR/${uname}.pem" -pkeyopt rsa_keygen_bits:2048 -aes-256-cbc -pass pass:"$passwd" 2>/dev/null && \
-       openssl rsa -in "$KEY_DIR/${uname}.pem" -passin pass:"$passwd" -pubout -out "$KEY_DIR/${uname}.pub.pem" 2>/dev/null; then
+    # create keypair non-interactively using provided passphrase
+    # Use secure temporary passfile helper to avoid exposing passphrase on argv
+    pf2=$(secure_tmp_passfile "$passwd") || { echo -e "${RED}Failed to create secure passfile${RESET}"; return 1; }
+    if openssl genpkey -algorithm RSA -out "$KEY_DIR/${uname}.pem" -pkeyopt rsa_keygen_bits:2048 -aes-256-cbc -pass file:"$pf2" 2>/dev/null && \
+       openssl rsa -in "$KEY_DIR/${uname}.pem" -passin file:"$pf2" -pubout -out "$KEY_DIR/${uname}.pub.pem" 2>/dev/null; then
         chmod 600 "$KEY_DIR/${uname}.pem" 2>/dev/null || true
         chmod 644 "$KEY_DIR/${uname}.pub.pem" 2>/dev/null || true
+        rm -f "$pf2"
         echo -e "${GREEN}Encryption keypair created for user '$uname'.${RESET}"
         return 0
     else
+        rm -f "$pf2"
         echo -e "${RED}Failed to create keypair.${RESET}"
         rm -f "$KEY_DIR/${uname}.pem" "$KEY_DIR/${uname}.pub.pem" 2>/dev/null || true
         return 1
     fi
+}
+
+
+# Create an RSA keypair non-interactively (utility function)
+# Usage: create_keypair_noninteractive <username> <passphrase>
+create_keypair_noninteractive() {
+    local uname="$1"
+    local passwd="$2"
+    if [ -z "$uname" ] || [ -z "$passwd" ]; then
+        return 1
+    fi
+    ensure_key_dir
+    local priv="$KEY_DIR/${uname}.pem"
+    local pub="$KEY_DIR/${uname}.pub.pem"
+    if [ -f "$priv" ] || [ -f "$pub" ]; then
+        return 1
+    fi
+    local pf
+    pf=$(secure_tmp_passfile "$passwd") || return 1
+    if ! openssl genpkey -algorithm RSA -out "$priv" -pkeyopt rsa_keygen_bits:2048 -aes-256-cbc -pass file:"$pf" 2>/dev/null; then
+        rm -f "$pf"
+        return 1
+    fi
+    if ! openssl rsa -in "$priv" -passin file:"$pf" -pubout -out "$pub" 2>/dev/null; then
+        rm -f "$pf"
+        rm -f "$priv"
+        return 1
+    fi
+    chmod 600 "$priv" 2>/dev/null || true
+    chmod 644 "$pub" 2>/dev/null || true
+    rm -f "$pf"
+    return 0
 }
 

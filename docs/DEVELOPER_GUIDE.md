@@ -34,6 +34,14 @@ Dhio is a terminal-first notes app implemented in portable Bash. Design goals:
   - Symmetric AES encryption (legacy functions `encrypt_note` / `decrypt_note`)
   - RSA-wrapped symmetric encryption (new): per-local-user RSA keypair in `$NOTES_DIR/.keys` and functions `encrypt_note_rsa` / `decrypt_note_rsa`
   - `ensure_default_user_key` prompts (interactive) to create a simple username/passphrase on first run
+  - `ensure_default_user_key` prompts (interactive) to create a simple username/passphrase on first run
+
+For full documentation on encryption, testing, keys, and release verification see the `docs/` directory:
+
+- `docs/ENCRYPTION.md` — detailed description of RSA-wrapped and symmetric flows, usage examples, and hardening notes.
+- `docs/KEYS_AND_GPG.md` — guidance on GPG signing, publishing public keys, and installer verification.
+- `docs/TESTING.md` — how tests are organized and how to add tests and run them locally/CI.
+- `docs/SECURITY.md` — security model, remaining risks, and pre-launch checklist.
 
 - `lib/notes/*.sh` — note operations (create, edit, delete, preview, search, tags). These files glue user actions in the UI to on-disk note files.
 

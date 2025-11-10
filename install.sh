@@ -6,6 +6,24 @@
 
 set -e
 
+# Allow overriding tarball URL and expected sha256 via env or args:
+# Usage: ./install.sh [--tarball-url URL] [--sha256 HEX] [uninstall]
+TARBALL_URL="https://github.com/zhasumit/dhio/archive/refs/heads/main.tar.gz"
+EXPECTED_SHA256=""
+GPG_PUBKEY_URL=""
+GPG_SIG_URL=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --tarball-url) TARBALL_URL="$2"; shift 2 ;;
+    --sha256) EXPECTED_SHA256="$2"; shift 2 ;;
+    --gpg-pubkey-url) GPG_PUBKEY_URL="$2"; shift 2 ;;
+    --sig-url|--gpg-sig-url) GPG_SIG_URL="$2"; shift 2 ;;
+    uninstall) break ;;
+    *) break ;;
+  esac
+done
+
 # Default install directory when running remote (curl | bash)
 DEFAULT_REMOTE_INSTALL_DIR="$HOME/.local/share/dhio"
 
@@ -42,10 +60,59 @@ if [ ! -f "$DHIO_SCRIPT" ]; then
     mkdir -p "$INSTALL_DIR"
     tmpdir=$(mktemp -d)
     echo "Downloading repository archive..."
-    if ! curl -sSL "https://github.com/zhasumit/dhio/archive/refs/heads/main.tar.gz" -o "$tmpdir/repo.tar.gz"; then
-      echo "Failed to download repository archive" >&2
+    tarball_path="$tmpdir/repo.tar.gz"
+    if ! curl -sSL "$TARBALL_URL" -o "$tarball_path"; then
+      echo "Failed to download repository archive from $TARBALL_URL" >&2
       rm -rf "$tmpdir"
       exit 1
+    fi
+    # Optional GPG verification (if both pubkey and sig URLs provided)
+    if [ -n "$GPG_PUBKEY_URL" ] && [ -n "$GPG_SIG_URL" ]; then
+      if ! command -v gpg >/dev/null 2>&1; then
+        echo "GPG not found: cannot verify tarball signature. Install gnupg or omit GPG args." >&2
+        rm -rf "$tmpdir"
+        exit 1
+      fi
+      echo "Downloading GPG public key and signature..."
+      pubkey_path="$tmpdir/pubkey.asc"
+      sig_path="$tmpdir/sig.asc"
+      if ! curl -sSL "$GPG_PUBKEY_URL" -o "$pubkey_path"; then
+        echo "Failed to download GPG public key from $GPG_PUBKEY_URL" >&2
+        rm -rf "$tmpdir"
+        exit 1
+      fi
+      if ! curl -sSL "$GPG_SIG_URL" -o "$sig_path"; then
+        echo "Failed to download signature from $GPG_SIG_URL" >&2
+        rm -rf "$tmpdir"
+        exit 1
+      fi
+
+      # Use a temporary GNUPGHOME so we don't pollute the user's keyring
+      GNUPGHOME=$(mktemp -d)
+      chmod 700 "$GNUPGHOME"
+      export GNUPGHOME
+      gpg --import "$pubkey_path" >/dev/null 2>&1 || { echo "Failed to import public key" >&2; rm -rf "$GNUPGHOME" "$tmpdir"; exit 1; }
+      # Verify signature (detached) against tarball
+      if ! gpg --verify "$sig_path" "$tarball_path" >/dev/null 2>&1; then
+        echo "GPG signature verification failed" >&2
+        rm -rf "$GNUPGHOME" "$tmpdir"
+        exit 1
+      fi
+      echo "GPG signature verification OK"
+      # cleanup GNUPGHOME (do not remove $tmpdir yet as we still need it)
+      rm -rf "$GNUPGHOME"
+      unset GNUPGHOME
+    fi
+    # If a sha256 was provided, verify it
+    if [ -n "$EXPECTED_SHA256" ]; then
+      echo "Verifying archive SHA256..."
+      calc=$(sha256sum "$tmpdir/repo.tar.gz" | awk '{print $1}')
+      if [ "$calc" != "$EXPECTED_SHA256" ]; then
+        echo "SHA256 mismatch: expected $EXPECTED_SHA256 but got $calc" >&2
+        rm -rf "$tmpdir"
+        exit 1
+      fi
+      echo "SHA256 verified"
     fi
     mkdir -p "$tmpdir/out"
     tar -xzf "$tmpdir/repo.tar.gz" -C "$tmpdir/out" || { echo "Failed to extract archive" >&2; rm -rf "$tmpdir"; exit 1; }

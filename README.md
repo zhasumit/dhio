@@ -147,25 +147,29 @@ decrypt_note_rsa /path/to/file.md.enc myuser
 
 ## Encryption (how it works)
 
-Dhio supports two encryption workflows:
+Dhio supports encryption; for a complete guide and security notes see `docs/ENCRYPTION.md`.
 
-1. RSA-wrapped symmetric encryption (recommended)
-   - Per-local user RSA keypair is stored under `$NOTES_DIR/.keys/` as `<username>.pem` (private, AES-encrypted with your passphrase) and `<username>.pub.pem` (public key).
-   - When you encrypt a note with `encrypt_note_rsa`, Dhio:
-     - Generates a random symmetric key
-     - Encrypts the note with AES-256 using that symmetric key
-     - Encrypts the symmetric key with the user's RSA public key and writes it to `<note>.key`
-     - The encrypted note is saved as `<note>.enc`
-   - To decrypt, provide the username and the passphrase to unlock the private key; Dhio uses the private key to decrypt the symmetric key and then the note.
+Quick summary:
 
-2. Symmetric AES-256 (legacy)
-   - `encrypt_note` and `decrypt_note` prompts for a passphrase to symmetrically encrypt/decrypt a note using OpenSSL AES-256.
+- Recommended: RSA-wrapped symmetric encryption (`encrypt_note_rsa` / `decrypt_note_rsa`). Keys are stored in `$NOTES_DIR/.keys/` and private keys are AES-encrypted with a passphrase.
+- Legacy: symmetric AES-256 passphrase flow (`encrypt_note` / `decrypt_note`).
+- Dhio avoids passing passphrases on the command line — it uses stdin or secure temporary files (mode 600) internally. See `docs/SECURITY.md` for the security checklist.
 
-Notes and security considerations
+Examples:
 
-- Private keys are encrypted with your passphrase using OpenSSL and stored on disk; keep `$NOTES_DIR` backed up and secure.
-- Some openssl commands may pass passphrases in a way that could be visible to system process listings briefly; if you need higher security we can change to prompt via stdin or use temporary files for passphrases.
-- The installer provides a small `ensure_default_user_key()` prompt at startup (interactive) to create a local username and passphrase on first run.
+```bash
+# interactive
+ensure_keypair myuser
+encrypt_note_rsa /path/to/note.md myuser
+decrypt_note_rsa /path/to/note.md.enc myuser
+
+# non-interactive (scripted)
+create_keypair_noninteractive myuser 'S3cureP@ss'
+encrypt_note_rsa /path/to/note.md myuser
+decrypt_note_rsa /path/to/note.md.enc myuser 'S3cureP@ss'
+```
+
+See `docs/ENCRYPTION.md` for full details, `docs/KEYS_AND_GPG.md` for signing/release guidance, and `docs/SECURITY.md` for hardening steps.
 
 
 ## Configuration & important files
